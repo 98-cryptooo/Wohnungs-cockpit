@@ -6,18 +6,28 @@ import { renderCook, initCook, updateTimerView, isCookOpen, closeCook } from './
 import { isNight, renderNight, peek } from './js/night.js';
 import { initConfirm, isConfirmOpen } from './js/confirm.js';
 import { initWakeLock } from './js/wake.js';
+import { computeFit } from './js/layout.js';
 import { initSetup, boot, syncSoon } from './js/setup.js';
 import { settings } from './js/settings.js';
 import { startLive, refreshLive } from './js/live.js';
 
 const $ = (id) => document.getElementById(id);
-const W = 1366;
-const H = 1024;
 
-// Feste Flaeche 1366 x 1024, passend in den Viewport skaliert (contain).
+// Buehne fuellt den ganzen sichtbaren Bildschirm (safe-area bleibt frei), Raster streckt sich (siehe layout.js).
 function fit() {
-  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
-  $('stage').style.setProperty('transform', 'translate(-50%, -50%) scale(' + s + ')');
+  const vp = $('viewport');
+  const cs = getComputedStyle(vp);
+  const pad = (k) => parseFloat(cs[k]) || 0;
+  const left = pad('paddingLeft');
+  const top = pad('paddingTop');
+  const w = vp.clientWidth - left - pad('paddingRight');
+  const h = vp.clientHeight - top - pad('paddingBottom');
+  if (w <= 0 || h <= 0) return;
+  const f = computeFit(w, h);
+  const st = $('stage').style;
+  st.setProperty('width', f.width + 'px');
+  st.setProperty('height', f.height + 'px');
+  st.setProperty('transform', 'translate(' + left + 'px, ' + top + 'px) scale(' + f.scale + ')');
 }
 
 function applyMode(now) {

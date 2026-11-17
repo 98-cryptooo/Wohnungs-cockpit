@@ -2,6 +2,7 @@
 import { data, ui, setUi, write, newId } from './state.js';
 import { el, pad, scaleQ, stepMinutes, safeUrl } from './util.js';
 import { askConfirm } from './confirm.js';
+import { itemBelongsTo } from './core.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -23,15 +24,16 @@ export function openTodayCook() {
 }
 
 export function dropRecipe(rid) {
+  const rec = data.recipes.find((x) => x.id === rid);
   write('recipes', (list) => list.map((x) => { if (x.id === rid) x.status = 'saved'; return x; }));
-  write('shop', (list) => list.filter((x) => x.r !== rid));
+  write('shop', (list) => list.filter((x) => !(rec ? itemBelongsTo(x, rec) : x.r === rid)));
 }
 
 export function rebuy(rid) {
   const r = data.recipes.find((x) => x.id === rid);
   if (!r) return;
   write('recipes', (list) => list.map((x) => { if (x.id === rid) x.status = 'list'; return x; }));
-  write('shop', (list) => list.filter((x) => x.r !== rid).concat(
+  write('shop', (list) => list.filter((x) => !itemBelongsTo(x, r)).concat(
     r.ingredients.map((z) => ({ t: z.t, q: z.q || undefined, g: r.name, r: rid, done: false, at: newId() }))
   ));
 }
@@ -44,14 +46,15 @@ async function finishCook() {
   const ck = ui.cook;
   if (!ck) return;
   const rid = ck.rid;
-  const missing = data.shop.filter((x) => x.r === rid && !x.done).length;
+  const rec = data.recipes.find((x) => x.id === rid);
+  const missing = data.shop.filter((x) => (rec ? itemBelongsTo(x, rec) : x.r === rid) && !x.done).length;
   if (missing > 0) {
     const text = missing === 1 ? 'Noch 1 Zutat nicht gekauft. Trotzdem fertig?' : 'Noch ' + missing + ' Zutaten nicht gekauft. Trotzdem fertig?';
     if (!(await askConfirm(text, 'Trotzdem fertig'))) return;
     if (!ui.cook || ui.cook.rid !== rid) return;
   }
   write('recipes', (list) => list.map((x) => { if (x.id === rid) x.status = 'saved'; return x; }));
-  write('shop', (list) => list.filter((x) => x.r !== rid));
+  write('shop', (list) => list.filter((x) => !(rec ? itemBelongsTo(x, rec) : x.r === rid)));
   setUi({ cook: null, timer: null });
 }
 

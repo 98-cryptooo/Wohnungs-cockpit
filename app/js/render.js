@@ -3,6 +3,8 @@ import { data, ui, write, setUi, newId, calendarRaw, getVet, getDepartures, DEMO
 import { el, button, icon, pad } from './util.js';
 import { cookRecipe, dropRecipe, rebuy, openTodayCook } from './cook.js';
 import { askConfirm } from './confirm.js';
+import { recipeForItem } from './core.js';
+import { safeUrl } from './util.js';
 import { buildCalendar, getCalendarState, calendarNote } from './calendar.js';
 import { buildWeather, demoWeather, getWeatherState, usableWeather, weatherMessage } from './weather.js';
 import { buildDepartures, getTransitState, usableDepartures, busMessage } from './transit.js';
@@ -94,7 +96,7 @@ export function renderWeather(now) {
   $('weather-note').hidden = !note;
   $('weather-note').textContent = note;
   if (!w) return;
-  $('weather-icon').replaceChildren(icon(w.icon, 56, '#D4B37A', 1.5));
+  $('weather-icon').replaceChildren(icon(w.icon, 44, '#D4B37A', 1.5));
   $('weather-temp').textContent = w.temp;
   $('weather-cond').textContent = w.cond;
   $('weather-feels').textContent = w.feels;
@@ -134,9 +136,13 @@ function toggleShop(at) {
 }
 
 export function renderShop() {
-  const recById = {};
-  data.recipes.forEach((r) => { recById[r.id] = r; });
-  const items = data.shop.map((x) => ({ x, store: storeOf(x), recipe: x.r || (x.u ? x.g : null) }));
+  // Zuordnung Posten zu Rezept: ueber r (ID), u (Link) oder u mit g (Name), siehe core.js itemBelongsTo.
+  // Ohne passendes Rezept (die Partner-App hat es noch nicht hochgeladen) gruppiert der Posten nach r oder g.
+  const items = data.shop.map((x) => {
+    const rec = recipeForItem(data.recipes, x);
+    const key = rec ? 'rec:' + rec.id : (x.r ? 'r:' + x.r : (x.u ? 'g:' + x.g : null));
+    return { x, rec, store: storeOf(x), recipe: key };
+  });
   const byDone = (a, b) => (a.x.done ? 1 : 0) - (b.x.done ? 1 : 0);
 
   const groups = [];
@@ -156,16 +162,32 @@ export function renderShop() {
       plain.forEach((i) => sub.append(checkRow(i.x.t, i.x.q, i.x.done, () => toggleShop(i.x.at), 'shop-' + i.x.at)));
       g.append(sub);
     }
-    [...new Set(inStore.filter((i) => i.recipe).map((i) => i.recipe))].forEach((rid) => {
-      const rec = recById[rid];
-      const title = rec ? rec.name : (inStore.find((i) => i.recipe === rid).x.g || 'Rezept');
+    [...new Set(inStore.filter((i) => i.recipe).map((i) => i.recipe))].forEach((key) => {
+      const members = inStore.filter((i) => i.recipe === key);
+      const rec = members[0].rec;
+      const rid = rec ? rec.id : null;
+      const title = rec ? rec.name : (members.map((i) => i.x.g).find(Boolean) || 'Rezept');
       const sub = el('div', 'sub recipe');
       const sh = el('div', 'sub-head');
       sh.append(icon('book', 14, '#D4B37A'), el('span', 'sub-title', title));
-      if (rec) sh.append(button('btn-gold-s', 'Heute kochen', () => cookRecipe(rid), 'Heute kochen: ' + title, 'cook-' + rid));
-      if (rec) sh.append(button('btn-ghost', 'Abwählen', () => dropRecipe(rid), 'Rezept abwählen: ' + title, 'drop-' + rid));
+      if (rec) {
+        sh.append(button('btn-gold-s', 'Heute kochen', () => cookRecipe(rid), 'Heute kochen: ' + title, 'cook-' + rid));
+        sh.append(button('btn-ghost', 'Abwählen', () => dropRecipe(rid), 'Rezept abwählen: ' + title, 'drop-' + rid));
+      } else {
+        // Rezept noch nicht angekommen: Hinweis und, wenn ein Link bekannt ist, "Original oeffnen" (nur http und https)
+        const href = members.map((i) => safeUrl(i.x.u)).find(Boolean);
+        if (href) {
+          const a = el('a', 'btn-ghost link-btn', 'Original öffnen');
+          a.href = href;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.setAttribute('aria-label', 'Original öffnen: ' + title);
+          sh.append(a);
+        }
+      }
       sub.append(sh);
-      inStore.filter((i) => i.recipe === rid).sort(byDone)
+      if (!rec) sub.append(el('div', 'sub-hint', 'Anleitung noch nicht synchronisiert'));
+      members.sort(byDone)
         .forEach((i) => sub.append(checkRow(i.x.t, i.x.q, i.x.done, () => toggleShop(i.x.at), 'shop-' + i.x.at)));
       g.append(sub);
     });

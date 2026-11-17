@@ -1,4 +1,4 @@
-/* Wohnungs-Cockpit: feste Fläche 1366 x 1024, per Transform in den Viewport skaliert. */
+/* Wohnungs-Cockpit: Bühne füllt den Bildschirm, Größe und Skalierung setzt app.js (layout.js). */
 :root {
   --bg: #0E0F11;
   --panel: #17191C;
@@ -39,15 +39,20 @@ button:focus-visible, a:focus-visible, input:focus-visible {
 }
 h2, h3, p { margin: 0; }
 
-#viewport { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+#viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
 #stage {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 1366px;
-  height: 1024px;
-  transform-origin: center center;
-  transform: translate(-50%, -50%);
+  left: 0;
+  top: 0;
+  width: 1160px;
+  height: 840px;
+  transform-origin: 0 0;
   overflow: hidden;
   background: var(--bg);
 }
@@ -88,13 +93,13 @@ h2, h3, p { margin: 0; }
   min-height: 0;
   min-width: 0;
 }
-.tile-clock { grid-column: 1; grid-row: 1 / span 2; padding: 28px; justify-content: space-between; gap: 0; }
+.tile-clock { grid-column: 1; grid-row: 1 / span 2; padding: 22px; justify-content: space-between; gap: 0; }
 .tile-cal { grid-column: 2; grid-row: 1; }
 .tile-shop { grid-column: 3; grid-row: 1 / span 2; gap: 6px; }
 .tile-tasks { grid-column: 2; grid-row: 2 / span 2; gap: 8px; }
 .tile-cats { grid-column: 3; grid-row: 3; gap: 12px; }
 .tile-bus { grid-column: 1; grid-row: 3; }
-.tile-head { display: flex; justify-content: space-between; align-items: center; min-height: 44px; gap: 12px; }
+.tile-head { display: flex; justify-content: space-between; align-items: center; min-height: 48px; gap: 12px; }
 .tile-head-base { align-items: baseline; min-height: 0; }
 
 /* Uhr */
@@ -102,13 +107,14 @@ h2, h3, p { margin: 0; }
 .clock-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 4px 12px; }
 .clock {
   font-family: var(--font-display);
-  font-size: 112px;
+  font-size: 96px;
   font-weight: 500;
   line-height: 1;
-  letter-spacing: -4px;
+  letter-spacing: -3.5px;
   font-variant-numeric: tabular-nums;
 }
-.date-label { font-size: 26px; color: #C9C6C0; }
+.date-label { font-size: 24px; color: #C9C6C0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#task-todo, #cat-todo, #today-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-width: 0; overflow-wrap: anywhere; }
 .pill {
   display: flex;
   align-items: center;
@@ -119,20 +125,22 @@ h2, h3, p { margin: 0; }
   border-radius: 999px;
   padding: 6px 12px;
   white-space: nowrap;
-  margin-top: 4px;
+  flex-shrink: 0;
 }
-.today { display: flex; flex-direction: column; gap: 8px; }
+.today { display: flex; flex-direction: column; gap: 6px; }
+.head-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; flex: 1; }
 .next { display: flex; align-items: stretch; gap: 14px; }
 .bar { width: 6px; border-radius: 3px; flex-shrink: 0; background: var(--accent); }
-.next-title { font-family: var(--font-display); font-size: 32px; font-weight: 500; line-height: 1.15; }
-.next-meta { font-size: 16px; color: var(--muted); }
-.row { display: flex; align-items: center; gap: 12px; font-size: 20px; }
+.next-title { font-family: var(--font-display); font-size: 28px; font-weight: 500; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.next-meta { font-size: 16px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row { display: flex; align-items: center; gap: 10px; font-size: 18px; }
 .row svg { flex-shrink: 0; }
 .weather { display: flex; flex-direction: column; gap: 8px; }
-.weather-now { display: flex; align-items: center; gap: 16px; }
-.temp { font-family: var(--font-display); font-size: 64px; font-weight: 500; line-height: 1; }
-.weather-text { font-size: 17px; color: #C9C6C0; line-height: 1.35; }
-.forecast { font-size: 16px; color: var(--muted); }
+.weather-now { display: flex; align-items: center; gap: 12px; }
+.temp { font-family: var(--font-display); font-size: 52px; font-weight: 500; line-height: 1; }
+.weather-text { font-size: 17px; color: #C9C6C0; line-height: 1.35; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.weather-text > div { overflow: hidden; text-overflow: ellipsis; }
+.forecast { font-size: 16px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Knoepfe */
 .btn-gold {
@@ -148,8 +156,8 @@ h2, h3, p { margin: 0; }
   border: none;
   color: var(--accent);
   font-size: 15px;
-  min-height: 44px;
-  min-width: 44px;
+  min-height: 48px;
+  min-width: 48px;
   padding: 0 12px;
 }
 .btn-ghost {
@@ -172,10 +180,10 @@ h2, h3, p { margin: 0; }
   color: var(--bg);
 }
 .round-btn {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
-  border-radius: 22px;
+  border-radius: 24px;
   background: #26292E;
   border: none;
   color: var(--text);
@@ -194,7 +202,7 @@ h2, h3, p { margin: 0; }
   border: none;
   color: inherit;
   padding: 0;
-  min-height: 44px;
+  min-height: 48px;
   width: 100%;
   text-align: left;
   font-size: 17px;
@@ -269,10 +277,10 @@ h2, h3, p { margin: 0; }
 .who-melina { background: #2C2442; color: #D4C6F7; }
 .who-beide { background: #26292E; color: #E2DFD9; }
 .del {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   flex-shrink: 0;
-  border-radius: 22px;
+  border-radius: 24px;
   background: none;
   border: none;
   color: #8A8D92;
@@ -331,7 +339,7 @@ h2, h3, p { margin: 0; }
 
 /* Bus */
 .bus-list { display: flex; flex-direction: column; gap: 10px; }
-.dep { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.dep { display: flex; align-items: center; gap: 12px; min-height: 48px; }
 .line {
   font-family: var(--font-display);
   font-size: 15px;
@@ -355,7 +363,7 @@ h2, h3, p { margin: 0; }
 .ov-card {
   position: relative;
   width: 560px;
-  max-height: 640px;
+  max-height: min(640px, calc(100% - 40px));
   background: #1A1C20;
   border: 1px solid #2E3237;
   border-radius: 24px;
@@ -393,7 +401,7 @@ h2, h3, p { margin: 0; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.cook-link { font-size: 16px; min-height: 44px; display: flex; align-items: center; padding: 0 8px; }
+.cook-link { font-size: 16px; min-height: 48px; display: flex; align-items: center; padding: 0 8px; }
 .cook-body { display: flex; gap: 24px; flex: 1; min-height: 0; }
 .cook-ingr {
   width: 380px;
@@ -511,6 +519,9 @@ h2, h3, p { margin: 0; }
 /* Sync-Status, Verbinden, Einstellungen */
 .today-head { display: flex; align-items: center; justify-content: space-between; }
 .sync-btn {
+  max-width: 190px;
+  min-width: 0;
+  flex-shrink: 1;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -528,7 +539,7 @@ h2, h3, p { margin: 0; }
 .sync-btn[data-state="offline"] .sync-dot { background: #D4B37A; }
 .sync-btn[data-state="error"] .sync-dot, .sync-btn[data-state="denied"] .sync-dot { background: #E07A7A; }
 .setup { position: absolute; inset: 0; z-index: 40; background: var(--bg); display: flex; align-items: center; justify-content: center; }
-.setup-card { width: 760px; display: flex; flex-direction: column; gap: 20px; }
+.setup-card { width: 760px; max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
 .setup-text { font-size: 20px; line-height: 1.45; color: #C9C6C0; }
 .setup-field { display: flex; flex-direction: column; gap: 8px; font-size: 16px; color: var(--soft); }
 .setup-field input {
@@ -554,7 +565,7 @@ h2, h3, p { margin: 0; }
 .dep-delay { color: #F0A0A0; font-weight: 600; margin-left: 6px; }
 
 /* Einstellungen: Ort und Bus */
-.settings-card { width: 720px; max-height: 920px; }
+.settings-card { width: 720px; max-height: calc(100% - 40px); }
 .settings-body { display: flex; flex-direction: column; gap: 24px; padding-right: 4px; }
 .set-sec { display: flex; flex-direction: column; gap: 14px; }
 .set-h { font-size: 14px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: var(--soft); }
@@ -589,3 +600,11 @@ h2, h3, p { margin: 0; }
 .set-dirs label { display: flex; flex-direction: column; gap: 6px; font-size: 15px; color: var(--soft); }
 .bus-setup { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .weather-config { align-self: flex-start; }
+
+.sync-btn span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tile-head .h { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tile-head .btn-link { padding: 0 8px; flex-shrink: 0; white-space: nowrap; }
+
+.link-btn { display: flex; align-items: center; text-decoration: none; color: var(--text); white-space: nowrap; }
+.sub-hint { font-size: 14px; color: var(--muted); padding: 0 0 4px; }

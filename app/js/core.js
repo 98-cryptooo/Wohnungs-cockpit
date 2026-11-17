@@ -71,6 +71,35 @@ export function normalizeList(list, arr, gen) {
   return [...byKey.values()];
 }
 
+// ---- Zuordnung Einkaufsposten zu Rezept ----------------------------------------------------------
+// Adresse zum Vergleichen: nur http und https, ohne #Anker, ohne Schrägstrich am Ende, Rechnername klein.
+export function normUrl(u) {
+  try {
+    const x = new URL(String(u).trim());
+    if (x.protocol !== 'http:' && x.protocol !== 'https:') return '';
+    return x.protocol + '//' + x.host.toLowerCase() + x.pathname.replace(/\/+$/, '') + x.search;
+  } catch (e) { return ''; }
+}
+
+// Gehoert der Posten zu diesem Rezept? Der Posten kann das Rezept auf drei Arten nennen:
+//  r = Rezept-ID (oder bei aelteren Staenden Zeitstempel at oder Rezeptname),
+//  u = Rezept-Link (gleiche Adresse wie das Rezept),
+//  u mit g = Gruppenname gleich Rezeptname (Melinas Gruppen heissen wie das Rezept).
+export function itemBelongsTo(item, rec) {
+  if (!item || !rec) return false;
+  const name = String(rec.name || '').trim().toLowerCase();
+  if (item.r != null && item.r !== '') {
+    const r = String(item.r).trim();
+    if (r === String(rec.id) || (rec.at != null && r === String(rec.at)) || (name && r.toLowerCase() === name)) return true;
+  }
+  const iu = item.u ? normUrl(item.u) : '';
+  if (iu && rec.url && normUrl(rec.url) === iu) return true;
+  if (item.u && item.g && name && String(item.g).trim().toLowerCase() === name) return true;
+  return false;
+}
+export const recipeForItem = (recipes, item) => recipes.find((r) => itemBelongsTo(item, r)) || null;
+export const itemsOfRecipe = (shop, rec) => shop.filter((i) => itemBelongsTo(i, rec));
+
 // ---- Uhr ----------------------------------------------------------------------------
 // nowTs() = max(Date.now() + Offset, letztes vergebenes ts + 1). Der Offset wird aus der Serverzeit geschaetzt.
 export function createClock(nowFn = Date.now) {

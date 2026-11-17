@@ -8,3 +8,7 @@ node_modules/
 *.key
 CLAUDE.local.md
 docs/*.local.md
+*.docx
+*.doc
+~$*
+*.pdf
