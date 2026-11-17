@@ -1,0 +1,44 @@
+# Veroeffentlicht den Ordner app/ ueber GitHub Pages, aber nur wenn alle Tests bestehen.
+name: App veroeffentlichen
+
+on:
+  push:
+    branches: [main, feature/cockpit-app]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tests ausfuehren
+        run: |
+          for f in tests/*.test.mjs; do
+            echo "== $f"
+            node "$f" || exit 1
+          done
+
+  deploy:
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app
+      - id: deployment
+        uses: actions/deploy-pages@v4
