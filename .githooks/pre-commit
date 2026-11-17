@@ -1,0 +1,6 @@
+#!/bin/bash
+# Stoppt Commits, die Geheimnisse enthalten koennten.
+bad=$(git diff --cached --name-only | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$')
+if [ -n "$bad" ]; then echo "STOPP: .env-Datei im Commit: $bad"; exit 1; fi
+hit=$(git diff --cached -U0 -- . ':!.env.example' ':!.githooks' | grep -E '^\+' | grep -vE '^\+\+\+' | grep -iE 'eyJ[A-Za-z0-9_-]{20,}|sb_secret_|service_role[^_a-z]*[:=]|webcal://|icloud\.com/published|HAUSHALTSCODE=[A-Za-z0-9_-]{12,}|#join=[A-Za-z0-9_-]{30,}')
+if [ -n "$hit" ]; then echo "STOPP: moegliches Geheimnis im Commit:"; echo "$hit" | cut -c1-80; exit 1; fi

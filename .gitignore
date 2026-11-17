@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.DS_Store
+node_modules/
+*.zip
+*.pem
+*.key
+CLAUDE.local.md
+docs/*.local.md

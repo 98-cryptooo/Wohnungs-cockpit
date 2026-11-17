@@ -1,0 +1,137 @@
+// Einstieg: verdrahtet Zustand, Anzeige, Uhr, Skalierung, Wake Lock und Service Worker.
+import './js/household.js'; // zuerst: entfernt #join aus der Adresse, bevor irgendetwas anderes laeuft
+import { subscribe, ui, DEMO } from './js/state.js';
+import { keepFocus, renderClock, renderToday, renderCalTop, renderWeather, renderShop, renderTasks, renderCats, renderVet, renderBus, renderOverlay, closeOverlay, initTiles } from './js/render.js';
+import { renderCook, initCook, updateTimerView, isCookOpen, closeCook } from './js/cook.js';
+import { isNight, renderNight, peek } from './js/night.js';
+import { initConfirm, isConfirmOpen } from './js/confirm.js';
+import { initWakeLock } from './js/wake.js';
+import { initSetup, boot, syncSoon } from './js/setup.js';
+import { settings } from './js/settings.js';
+import { startLive, refreshLive } from './js/live.js';
+
+const $ = (id) => document.getElementById(id);
+const W = 1366;
+const H = 1024;
+
+// Feste Flaeche 1366 x 1024, passend in den Viewport skaliert (contain).
+function fit() {
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  $('stage').style.setProperty('transform', 'translate(-50%, -50%) scale(' + s + ')');
+}
+
+function applyMode(now) {
+  const night = isNight(now);
+  $('night').hidden = !night;
+  $('day').hidden = night;
+  if (night) {
+    $('overlay').hidden = true;
+    $('cook').hidden = true;
+    renderNight(now);
+    return;
+  }
+  renderOverlay(now);
+  renderCook();
+  // Hintergrund nicht bedienbar, solange ein Dialog offen ist
+  $('day').inert = !!ui.open || isCookOpen() || !$('setup').hidden || !$('settings').hidden;
+}
+
+function renderEverything(now) {
+  renderClock(now);
+  renderToday(now);
+  renderCalTop(now);
+  renderWeather(now);
+  renderShop();
+  renderTasks();
+  renderCats();
+  renderVet(now);
+  renderBus(now);
+  applyMode(now);
+}
+
+let lastMinute = -1;
+let lastNight = null;
+let lastBus = 0;
+function onTick(force) {
+  const now = new Date();
+  const night = isNight(now);
+  if (ui.timer && !night) updateTimerView();
+  // Abfahrten, die man nicht mehr schafft, spaetestens nach 15 s ausblenden (nur solange sichtbar)
+  if (!night && document.visibilityState === 'visible' && Date.now() - lastBus >= 15000) { lastBus = Date.now(); renderBus(now); }
+  const key = now.getHours() * 60 + now.getMinutes();
+  if (!force && key === lastMinute && night === lastNight) return;
+  lastMinute = key;
+  lastNight = night;
+  keepFocus(() => {
+    renderClock(now);
+    renderToday(now);
+    renderCalTop(now);
+    renderWeather(now);
+    renderCats(now);
+    renderVet(now);
+    renderBus(now);
+    applyMode(now);
+  });
+}
+
+subscribe((topic) => {
+  const now = new Date();
+  keepFocus(() => {
+    switch (topic) {
+      case 'shop': renderShop(); renderToday(now); break;
+      case 'recipes': renderShop(); renderToday(now); applyMode(now); break;
+      case 'tasks': renderTasks(); renderToday(now); break;
+      case 'cats': renderCats(); renderToday(now); break;
+      case 'weather': renderWeather(now); applyMode(now); break;
+      case 'transit': renderBus(now); break;
+      case 'cal': renderCalTop(now); renderToday(now); applyMode(now); break;
+      case 'ui': renderToday(now); applyMode(now); break;
+      default: renderEverything(now);
+    }
+  });
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || isConfirmOpen()) return;
+  if (ui.open) closeOverlay();
+  else if (isCookOpen()) closeCook();
+});
+
+settings.subscribe(() => { // Wetterort, Haltestelle oder Fussweg geaendert: sofort neu zeichnen
+  const now = new Date();
+  keepFocus(() => { renderWeather(now); renderBus(now); applyMode(now); });
+});
+
+initTiles();
+initCook();
+initConfirm();
+initSetup();
+$('night').addEventListener('click', () => { peek(); onTick(true); });
+fit();
+window.addEventListener('resize', fit);
+window.addEventListener('orientationchange', fit);
+renderEverything(new Date());
+onTick(true);
+setInterval(() => onTick(false), 1000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { fit(); onTick(true); syncSoon(); refreshLive(); } });
+initWakeLock();
+boot();
+if (!DEMO) startLive(); // im Demo-Modus nie Wetter- oder Bus-Abruf
+
+if ('serviceWorker' in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloaded = false;
+  // Neue Version aktiv: einmal neu laden, aber nie mitten im Kochen.
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloaded || isCookOpen()) return;
+    reloaded = true;
+    location.reload();
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      const check = () => { reg.update().catch(() => { /* offline: egal */ }); };
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+      setInterval(check, 6 * 60 * 60 * 1000);
+    }).catch(() => { /* ohne Service Worker laeuft die App weiter, nur nicht offline */ });
+  });
+}

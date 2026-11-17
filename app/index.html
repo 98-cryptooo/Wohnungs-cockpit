@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' https://gzyhpjcyuyepkpapcnyu.supabase.co https://api.open-meteo.com https://geocoding-api.open-meteo.com https://v6.bvg.transport.rest; img-src 'self' data:; font-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E0F11">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Cockpit">
+<title>Wohnungs-Cockpit</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="viewport">
+<div id="stage">
+
+  <main id="day" class="day">
+
+    <!-- Uhr, Heute, Wetter -->
+    <section id="tile-clock" class="tile tile-clock" aria-label="Uhrzeit, heute und Wetter">
+      <div class="clock-head">
+        <div class="clock-row">
+          <div id="clock" class="clock">00:00</div>
+          <span class="pill" title="Licht, Heizung und Musik kommen, sobald Geräte da sind">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9A9DA3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg>
+            Smart Home bald
+          </span>
+        </div>
+        <div id="date-label" class="date-label"></div>
+      </div>
+
+      <div class="today">
+        <div class="today-head">
+          <h2 class="h">Heute</h2>
+          <button id="btn-sync" type="button" class="sync-btn" aria-label="Verbindung">
+            <span id="sync-dot" class="sync-dot" aria-hidden="true"></span>
+            <span id="sync-label"></span>
+          </button>
+        </div>
+        <div class="next">
+          <span class="bar" aria-hidden="true"></span>
+          <div class="col">
+            <span id="next-title" class="next-title"></span>
+            <span id="next-meta" class="next-meta"></span>
+          </div>
+        </div>
+        <div class="row">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+          <span id="task-todo"></span>
+        </div>
+        <div id="today-cook" class="row" hidden>
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13h12M6 13a6 6 0 0 0 12 0M12 4v3M8 5l1 2M16 5l-1 2"></path></svg>
+          <span id="today-name" class="grow"></span>
+          <button id="btn-today-cook" type="button" class="btn-gold btn-sm">Kochmodus</button>
+        </div>
+        <div class="row">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+          <span id="cat-todo"></span>
+        </div>
+      </div>
+
+      <div class="weather">
+        <div id="weather-empty" class="forecast">Wetter nicht verfügbar</div>
+        <button id="weather-config" type="button" class="btn-gold-s weather-config" hidden>Einstellungen öffnen</button>
+        <div id="weather-data" class="weather-data">
+          <div class="weather-now">
+            <span id="weather-icon" class="weather-icon"></span>
+            <div id="weather-temp" class="temp"></div>
+            <div class="weather-text"><div id="weather-cond"></div><div id="weather-feels"></div></div>
+          </div>
+          <div id="forecast" class="forecast"></div>
+        </div>
+        <div id="weather-note" class="hint" hidden></div>
+      </div>
+    </section>
+
+    <!-- Kalender -->
+    <section id="tile-cal" class="tile tile-cal" aria-label="Kalender">
+      <div class="tile-head">
+        <h2 class="h">Kalender</h2>
+        <button id="btn-cal-all" type="button" class="btn-link">Alle</button>
+      </div>
+      <div id="cal-top" class="cal-top"></div>
+      <div id="cal-note" class="hint cal-note" hidden></div>
+    </section>
+
+    <!-- Einkauf -->
+    <section id="tile-shop" class="tile tile-shop" aria-label="Einkaufsliste">
+      <div class="tile-head">
+        <h2 id="shop-title" class="h">Einkauf</h2>
+        <button id="btn-saved" type="button" class="btn-link">Sammlung</button>
+      </div>
+      <div id="shop-list" class="scroll shop-list"></div>
+    </section>
+
+    <!-- Diese Woche -->
+    <section id="tile-tasks" class="tile tile-tasks" aria-label="Diese Woche">
+      <div class="tile-head">
+        <h2 id="tasks-title" class="h">Diese Woche</h2>
+        <button id="btn-week-reset" type="button" class="btn-link">Woche neu starten</button>
+      </div>
+      <div id="task-list" class="scroll task-list"></div>
+      <div id="task-empty" class="empty" hidden>Noch keine Aufgaben. Unten eine hinzufügen.</div>
+      <span class="hint">Name antippen zum Wechseln</span>
+      <form id="task-form" class="task-form" autocomplete="off">
+        <label class="grow">
+          <span class="sr">Neue Aufgabe</span>
+          <input id="task-input" type="text" placeholder="Neue Aufgabe, z. B. Fenster putzen" maxlength="60">
+        </label>
+        <button id="task-add" type="submit" class="btn-add">Hinzufügen</button>
+      </form>
+    </section>
+
+    <!-- Katzen -->
+    <section id="tile-cats" class="tile tile-cats" aria-label="Katzen">
+      <h2 class="h">Katzen heute</h2>
+      <div id="cat-checks" class="cat-grid"></div>
+      <div class="vet">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path></svg>
+        <span id="vet-text"></span>
+      </div>
+    </section>
+
+    <!-- Bus -->
+    <section id="tile-bus" class="tile tile-bus" aria-label="Abfahrten">
+      <div class="tile-head tile-head-base">
+        <h2 id="bus-title" class="h">Bus</h2>
+        <span id="walk-label" class="hint"></span>
+      </div>
+      <div id="bus-list" class="bus-list"></div>
+      <div id="bus-note" class="hint bus-note" hidden></div>
+    </section>
+
+  </main>
+
+  <!-- Overlay: Kalender oder Sammlung -->
+  <div id="overlay" class="overlay" hidden>
+    <button id="ov-scrim" type="button" class="scrim" tabindex="-1" aria-label="Schließen"></button>
+    <div id="ov-dialog" class="ov-card" role="dialog" aria-modal="true" aria-labelledby="ov-title">
+      <div class="ov-head">
+        <h2 id="ov-title" class="ov-title"></h2>
+        <button id="ov-close" type="button" class="round-btn" aria-label="Schließen">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+        </button>
+      </div>
+      <div id="ov-body" class="ov-body scroll"></div>
+    </div>
+  </div>
+
+  <!-- Kochmodus -->
+  <div id="cook" class="cook" role="dialog" aria-modal="true" aria-labelledby="cook-name" hidden>
+    <div class="cook-head">
+      <div class="col grow">
+        <span id="cook-counter" class="h"></span>
+        <h2 id="cook-name" class="cook-name"></h2>
+      </div>
+      <a id="cook-link" class="cook-link" href="#" target="_blank" rel="noopener noreferrer" hidden>Original öffnen</a>
+      <button id="cook-close" type="button" class="round-btn round-lg" aria-label="Kochmodus schließen">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </button>
+    </div>
+    <div class="cook-body">
+      <aside class="cook-ingr" aria-label="Zutaten">
+        <div class="serv">
+          <button id="serv-less" type="button" class="serv-btn" aria-label="Weniger Portionen">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg>
+          </button>
+          <span id="serv-label" class="serv-label"></span>
+          <button id="serv-more" type="button" class="serv-btn" aria-label="Mehr Portionen">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+          </button>
+        </div>
+        <div id="cook-ingr" class="scroll ingr-list"></div>
+      </aside>
+      <section class="cook-step" aria-label="Arbeitsschritt">
+        <p id="step-text" class="step-text"></p>
+        <button id="cook-timer" type="button" class="timer-btn" hidden><span id="timer-main" class="timer-main"></span><span id="timer-sub" class="timer-sub"></span></button>
+        <div class="step-nav">
+          <button id="step-prev" type="button" class="btn-prev">Zurück</button>
+          <button id="step-next" type="button" class="btn-next"></button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Haushalt verbinden (erster Start ohne Code) -->
+  <div id="setup" class="setup" role="dialog" aria-modal="true" aria-labelledby="setup-title" hidden>
+    <form id="setup-form" class="setup-card" autocomplete="off">
+      <h2 id="setup-title" class="ov-title">Haushalt verbinden</h2>
+      <p class="setup-text">Damit Einkauf, Aufgaben und Rezepte zwischen den Geräten abgeglichen werden, braucht das Cockpit zwei Angaben. Beide stehen in der Übergabe (Datei .env im Projekt) und in Supabase unter Project Settings, API: der Haushaltscode und der Schlüssel "anon public key".</p>
+      <label class="setup-field">
+        <span>Haushaltscode</span>
+        <input id="setup-code" class="secret" type="password" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </label>
+      <label class="setup-field">
+        <span>Schlüssel (anon public key)</span>
+        <input id="setup-key" class="secret" type="password" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </label>
+      <p id="setup-error" class="setup-error" role="alert" hidden></p>
+      <div class="step-nav">
+        <button id="setup-skip" type="button" class="btn-prev">Ohne Verbindung starten</button>
+        <button id="setup-go" type="submit" class="btn-next">Verbinden</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Einstellungen: Verbindung, Ort und Bus -->
+  <div id="settings" class="overlay confirm" hidden>
+    <div id="settings-scrim" class="scrim"></div>
+    <div class="ov-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="ov-head">
+        <h2 id="settings-title" class="ov-title">Einstellungen</h2>
+        <button id="settings-close" type="button" class="round-btn" aria-label="Schließen">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+        </button>
+      </div>
+      <div class="settings-body scroll">
+        <section class="set-sec" aria-labelledby="set-conn-h">
+          <h3 id="set-conn-h" class="set-h">Verbindung</h3>
+          <p id="settings-text" class="set-text"></p>
+          <div class="settings-btns">
+            <button id="settings-sync" type="button" class="btn-ghost">Jetzt abgleichen</button>
+            <button id="settings-connect" type="button" class="btn-ghost">Verbinden</button>
+            <button id="settings-off" type="button" class="btn-ghost">Trennen</button>
+          </div>
+        </section>
+        <section class="set-sec" aria-labelledby="set-place-h">
+          <h3 id="set-place-h" class="set-h">Ort und Bus</h3>
+          <p class="set-text">Diese Angaben bleiben nur auf diesem Gerät und gehören nicht zum Haushalt.</p>
+
+          <div class="set-field">
+            <label for="cfg-weather-q" class="set-label">Wetterort</label>
+            <span id="cfg-weather-current" class="set-cur"></span>
+            <input id="cfg-weather-q" class="set-input" type="search" placeholder="Ort suchen" maxlength="60" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+            <div id="cfg-weather-results" class="set-results"></div>
+            <p id="cfg-weather-msg" class="set-msg" role="status"></p>
+          </div>
+
+          <div class="set-field">
+            <label for="cfg-stop-q" class="set-label">Haltestelle</label>
+            <span id="cfg-stop-current" class="set-cur"></span>
+            <input id="cfg-stop-q" class="set-input" type="search" placeholder="Haltestelle suchen" maxlength="60" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+            <div id="cfg-stop-results" class="set-results"></div>
+            <p id="cfg-stop-msg" class="set-msg" role="status"></p>
+          </div>
+
+          <div class="set-field">
+            <label for="cfg-lines" class="set-label">Linien (durch Komma getrennt, leer = alle)</label>
+            <input id="cfg-lines" class="set-input" type="text" placeholder="z. B. 100, M5" maxlength="80" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+            <div id="cfg-dirs" class="set-dirs"></div>
+          </div>
+
+          <div class="set-field">
+            <span class="set-label" id="cfg-walk-label">Fußweg zur Haltestelle</span>
+            <div class="serv" role="group" aria-labelledby="cfg-walk-label">
+              <button id="cfg-walk-less" type="button" class="serv-btn" aria-label="Weniger Minuten Fußweg">
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg>
+              </button>
+              <span id="cfg-walk-value" class="serv-label"></span>
+              <button id="cfg-walk-more" type="button" class="serv-btn" aria-label="Mehr Minuten Fußweg">
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5v14"></path></svg>
+              </button>
+            </div>
+          </div>
+
+          <button id="cfg-clear" type="button" class="btn-ghost">Orts-Einstellungen löschen</button>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rueckfrage -->
+  <div id="confirm" class="overlay confirm" hidden>
+    <div id="confirm-scrim" class="scrim"></div>
+    <div class="ov-card confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="confirm-msg">
+      <p id="confirm-msg" class="confirm-msg"></p>
+      <div class="step-nav">
+        <button id="confirm-no" type="button" class="btn-prev">Abbrechen</button>
+        <button id="confirm-yes" type="button" class="btn-next"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nachtmodus -->
+  <div id="night" class="night" hidden>
+    <div id="night-shift" class="night-shift">
+      <div id="night-time" class="night-time"></div>
+      <div id="night-line" class="night-line"></div>
+    </div>
+  </div>
+
+</div>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

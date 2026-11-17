@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Wohnungs-Cockpit</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0;background:#0E0F11}
+a{color:#D4B37A}a:hover{color:#E6CB98}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1366px; height: 1024px; position: relative; overflow: hidden; background: #0E0F11; font-family: Inter, system-ui, sans-serif; color: #F2EFEA">
+
+<sc-if value="{{dayMode}}" hint-placeholder-val="{{ true }}">
+<div style="width: 1366px; height: 1024px; box-sizing: border-box; padding: 24px; display: grid; grid-template-columns: 1.05fr 1fr 1fr; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 16px">
+
+  <!-- Uhr, Heute, Wetter -->
+  <section aria-label="Uhrzeit, heute und Wetter" style="grid-column: 1; grid-row: 1 / span 2; background: #17191C; border: 1px solid #24272B; border-radius: 20px; padding: 28px; display: flex; flex-direction: column; justify-content: space-between; min-height: 0">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px">
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 112px; font-weight: 500; line-height: 1; letter-spacing: -4px; font-variant-numeric: tabular-nums">{{time}}</div>
+        <span title="Licht, Heizung und Musik kommen, sobald Geräte da sind" style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #B4B1AB; border: 1px dashed #3A3E44; border-radius: 999px; padding: 6px 12px; white-space: nowrap; margin-top: 8px">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9A9DA3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg>
+          Smart Home bald
+        </span>
+      </div>
+      <div style="font-size: 26px; color: #C9C6C0">{{dateLabel}}</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #B4B1AB">Heute</h2>
+      <div style="display: flex; align-items: stretch; gap: 14px">
+        <span aria-hidden="true" style="{{nextBar}}"></span>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 500; line-height: 1.15">{{nextTitle}}</span>
+          <span style="font-size: 16px; color: #9A9DA3">{{nextMeta}}</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 20px">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        <span>{{taskTodo}}</span>
+      </div>
+      <sc-if value="{{hasToday}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: center; gap: 12px; font-size: 20px">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13h12M6 13a6 6 0 0 0 12 0M12 4v3M8 5l1 2M16 5l-1 2"></path></svg>
+          <span style="flex: 1; min-width: 0">Heute kochen: {{todayName}}</span>
+          <button type="button" onClick="{{openTodayCook}}" style="font: inherit; font-size: 15px; font-weight: 600; min-height: 44px; padding: 0 16px; border-radius: 12px; border: none; background: #D4B37A; color: #0E0F11; cursor: pointer">Kochmodus</button>
+        </div>
+      </sc-if>
+      <div style="display: flex; align-items: center; gap: 12px; font-size: 20px">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+        <span>{{catTodo}}</span>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="display: flex; align-items: center; gap: 16px">
+        <svg aria-hidden="true" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path></svg>
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 64px; font-weight: 500; line-height: 1">6°</div>
+        <div style="font-size: 17px; color: #C9C6C0; line-height: 1.35">Bewölkt<br>gefühlt 3°</div>
+      </div>
+      <div style="font-size: 16px; color: #9A9DA3">Mi 7° Regen · Do 5° wolkig · Fr 4° sonnig</div>
+    </div>
+  </section>
+
+  <!-- Kalender -->
+  <section aria-label="Kalender" style="grid-column: 2; grid-row: 1; background: #17191C; border: 1px solid #24272B; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 10px; min-height: 0">
+    <div style="display: flex; justify-content: space-between; align-items: center">
+      <h2 style="margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #B4B1AB">Kalender</h2>
+      <button type="button" onClick="{{openCal}}" style="{{allBtn}}">Alle</button>
+    </div>
+    <sc-for list="{{calTop}}" as="ev" hint-placeholder-count="3">
+      <div style="display: flex; gap: 12px; align-items: center; min-height: 36px">
+        <span style="{{ev.dayStyle}}">{{ev.day}}</span>
+        <span style="display: flex; flex-direction: column; min-width: 0">
+          <span style="font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ev.title}}</span>
+          <span style="font-size: 14px; color: #9A9DA3">{{ev.when}}</span>
+        </span>
+      </div>
+    </sc-for>
+  </section>
+
+  <!-- Einkauf -->
+  <section aria-label="Einkaufsliste" style="grid-column: 3; grid-row: 1 / span 2; background: #17191C; border: 1px solid #24272B; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 6px; min-height: 0">
+    <div style="display: flex; justify-content: space-between; align-items: center; min-height: 32px">
+      <h2 style="margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #B4B1AB">Einkauf · {{shopOpen}} offen</h2>
+      <button type="button" onClick="{{openSaved}}" style="{{allBtn}}">Sammlung · {{savedCount}}</button>
+    </div>
+    <div style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; gap: 4px">
+      <sc-for list="{{shopGroups}}" as="g" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 10px 0 4px">
+            <span aria-hidden="true" style="{{g.dotStyle}}"></span>
+            <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #F2EFEA">{{g.name}}</h3>
+            <span style="font-size: 13px; color: #9A9DA3">{{g.count}}</span>
+          </div>
+          <sc-for list="{{g.subs}}" as="sub" hint-placeholder-count="1">
+            <div style="{{sub.boxStyle}}">
+              <sc-if value="{{sub.isRecipe}}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0 2px">
+                  <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"></path></svg>
+                  <span style="font-size: 15px; font-weight: 600; color: #D4B37A; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{sub.title}}</span>
+                  <button type="button" onClick="{{sub.cook}}" aria-label="{{sub.cookLabel}}" style="font: inherit; font-size: 14px; font-weight: 600; min-height: 40px; padding: 0 14px; border-radius: 10px; border: none; background: #D4B37A; color: #0E0F11; cursor: pointer">Heute kochen</button>
+                  <button type="button" onClick="{{sub.drop}}" aria-label="{{sub.dropLabel}}" style="font: inherit; font-size: 14px; min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #3A3E44; background: none; color: #C9C6C0; cursor: pointer">Abwählen</button>
+                </div>
+              </sc-if>
+              <sc-for list="{{sub.items}}" as="it" hint-placeholder-count="2">
+                <button type="button" role="checkbox" aria-checked="{{it.checked}}" onClick="{{it.toggle}}" style="display: flex; align-items: center; gap: 12px; background: none; border: none; color: inherit; padding: 0; min-height: 44px; width: 100%; text-align: left; cursor: pointer">
+                  <span aria-hidden="true" style="{{it.boxStyle}}"></span>
+                  <span style="{{it.textStyle}}">{{it.text}}</span>
+                  <span style="font-size: 14px; color: #9A9DA3; white-space: nowrap">{{it.q}}</span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- Putzplan -->
+  <section aria-label="Diese Woche" style="grid-column: 2; grid-row: 2 / span 2; background: #17191C; border: 1px solid #24272B; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 8px; min-height: 0">
+    <div style="display: flex; justify-content: space-between; align-items: center; min-height: 44px">
+      <h2 style="margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #B4B1AB">Diese Woche · {{taskDone}}/{{taskTotal}}</h2>
+      <span style="font-size: 13px; color: #9A9DA3">Name antippen zum Wechseln</span>
+    </div>
+    <div style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto">
+      <sc-for list="{{tasks}}" as="it" hint-placeholder-count="5">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 52px; border-bottom: 1px solid #222529">
+          <button type="button" role="checkbox" aria-checked="{{it.checked}}" aria-label="{{it.text}}" onClick="{{it.toggle}}" style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; background: none; border: none; color: inherit; padding: 0; min-height: 48px; text-align: left; cursor: pointer">
+            <span aria-hidden="true" style="{{it.boxStyle}}"></span>
+            <span style="{{it.textStyle}}">{{it.text}}</span>
+          </button>
+          <button type="button" onClick="{{it.cycle}}" aria-label="{{it.whoLabel}}" style="{{it.whoStyle}}">{{it.who}}</button>
+          <button type="button" onClick="{{it.remove}}" aria-label="{{it.delLabel}}" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 22px; background: none; border: none; color: #8A8D92; cursor: pointer; display: flex; align-items: center; justify-content: center">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+          </button>
+        </div>
+      </sc-for>
+      <sc-if value="{{noTasks}}" hint-placeholder-val="{{ false }}">
+        <div style="font-size: 16px; color: #9A9DA3; padding: 16px 0">Noch keine Aufgaben. Unten eine hinzufügen.</div>
+      </sc-if>
+    </div>
+    <div style="display: flex; gap: 8px; padding-top: 4px">
+      <label style="flex: 1; display: flex">
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Neue Aufgabe</span>
+        <input type="text" value="{{draft}}" onInput="{{onDraft}}" onKeyDown="{{onKey}}" placeholder="Neue Aufgabe, z. B. Fenster putzen" maxlength="60" style="flex: 1; min-width: 0; min-height: 48px; box-sizing: border-box; padding: 0 14px; border-radius: 12px; border: 1px solid #3A3E44; background: #1F2226; color: #F2EFEA; font: inherit; font-size: 16px">
+      </label>
+      <button type="button" onClick="{{addTask}}" style="{{addBtn}}">Hinzufügen</button>
+    </div>
+  </section>
+
+  <!-- Katzen -->
+  <section aria-label="Katzen" style="grid-column: 3; grid-row: 3; background: #17191C; border: 1px solid #24272B; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; min-height: 0">
+    <h2 style="margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #B4B1AB">Katzen heute</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{catChecks}}" as="c" hint-placeholder-count="3">
+        <button type="button" role="checkbox" aria-checked="{{c.checked}}" onClick="{{c.toggle}}" style="{{c.btnStyle}}">
+          <span style="font-size: 14px; color: #B4B1AB">{{c.label}}</span>
+          <span style="font-size: 15px; font-weight: 600; white-space: nowrap">{{c.state}}</span>
+        </button>
+      </sc-for>
+    </div>
+    <div style="margin-top: auto; display: flex; align-items: center; gap: 10px; font-size: 16px">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path></svg>
+      <span>Termin: Beispiel · Mi 18.11., 10:30</span>
+    </div>
+  </section>
+
+  <!-- BVG -->
+  <section aria-label="Abfahrten Haltestelle" style="grid-column: 1; grid-row: 3; background: #17191C; border: 1px solid #24272B; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 10px; min-height: 0">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <h2 style="margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #B4B1AB">Bus ab Beispielstr.</h2>
+      <span style="font-size: 13px; color: #9A9DA3">{{walkLabel}}</span>
+    </div>
+    <sc-for list="{{deps}}" as="d" hint-placeholder-count="3">
+      <div style="display: flex; align-items: center; gap: 12px; min-height: 44px">
+        <span style="{{d.lineStyle}}">{{d.line}}</span>
+        <span style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+          <span style="{{d.goStyle}}">{{d.go}}</span>
+          <span style="font-size: 14px; color: #9A9DA3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.dir}} · {{d.mins}} Min</span>
+        </span>
+      </div>
+    </sc-for>
+  </section>
+
+</div>
+
+<!-- Overlay -->
+<sc-if value="{{overlayOpen}}" hint-placeholder-val="{{ false }}">
+  <div style="position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center">
+    <button type="button" onClick="{{closeOv}}" aria-label="Schließen" style="position: absolute; inset: 0; background: rgba(8, 9, 10, 0.72); border: none; cursor: pointer"></button>
+    <div role="dialog" aria-modal="true" aria-label="{{ovTitle}}" style="position: relative; width: 560px; max-height: 640px; background: #1A1C20; border: 1px solid #2E3237; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 500">{{ovTitle}}</h2>
+        <button type="button" onClick="{{closeOv}}" aria-label="Schließen" style="width: 44px; height: 44px; border-radius: 22px; background: #26292E; border: none; color: #F2EFEA; cursor: pointer; display: flex; align-items: center; justify-content: center">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+        </button>
+      </div>
+      <div style="display: flex; flex-direction: column; overflow-y: auto">
+        <sc-if value="{{ovIsCal}}" hint-placeholder-val="{{ false }}">
+          <sc-for list="{{ovCal}}" as="ev" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 14px; border-bottom: 1px solid #26292E; padding: 14px 0">
+              <span style="{{ev.dayStyle}}">{{ev.day}}</span>
+              <span style="font-size: 18px; flex: 1">{{ev.title}}</span>
+              <span style="font-size: 15px; color: #9A9DA3; white-space: nowrap">{{ev.when}}</span>
+            </div>
+          </sc-for>
+        </sc-if>
+        <sc-if value="{{ovIsSaved}}" hint-placeholder-val="{{ false }}">
+          <sc-for list="{{savedList}}" as="r" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #26292E; padding: 12px 0">
+              <span style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+                <span style="font-size: 18px">{{r.name}}</span>
+                <span style="font-size: 14px; color: #9A9DA3">{{r.meta}}</span>
+              </span>
+              <button type="button" onClick="{{r.rebuy}}" style="font: inherit; font-size: 14px; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid #3A3E44; background: none; color: #F2EFEA; cursor: pointer">Wieder einkaufen</button>
+              <button type="button" onClick="{{r.cook}}" style="font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; padding: 0 14px; border-radius: 10px; border: none; background: #D4B37A; color: #0E0F11; cursor: pointer">Kochen</button>
+            </div>
+          </sc-for>
+          <sc-if value="{{noSaved}}" hint-placeholder-val="{{ false }}">
+            <div style="font-size: 16px; color: #9A9DA3; padding: 12px 0">Noch keine Rezepte in der Sammlung.</div>
+          </sc-if>
+        </sc-if>
+        <sc-if value="{{ovIsList}}" hint-placeholder-val="{{ true }}">
+          <sc-for list="{{ovItems}}" as="it" hint-placeholder-count="5">
+            <button type="button" role="checkbox" aria-checked="{{it.checked}}" onClick="{{it.toggle}}" style="display: flex; align-items: center; gap: 14px; background: none; border: none; border-bottom: 1px solid #26292E; color: inherit; padding: 10px 0; min-height: 52px; text-align: left; cursor: pointer">
+              <span aria-hidden="true" style="{{it.boxStyle}}"></span>
+              <span style="{{it.textStyle}}">{{it.text}}</span>
+              <span style="font-size: 15px; color: #9A9DA3; white-space: nowrap">{{it.meta}}</span>
+            </button>
+          </sc-for>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+</sc-if>
+<!-- Kochmodus -->
+<sc-if value="{{cookOpen}}" hint-placeholder-val="{{ false }}">
+  <div role="dialog" aria-modal="true" aria-label="{{cookName}}" style="position: absolute; inset: 0; z-index: 8; background: #0E0F11; box-sizing: border-box; padding: 28px; display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; align-items: center; gap: 16px">
+      <div style="display: flex; flex-direction: column; flex: 1; min-width: 0">
+        <span style="font-size: 14px; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; color: #B4B1AB">Kochmodus · {{cookCounter}}</span>
+        <h2 style="margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 36px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{cookName}}</h2>
+      </div>
+      <button type="button" onClick="{{closeCook}}" aria-label="Kochmodus schließen" style="width: 56px; height: 56px; border-radius: 28px; background: #26292E; border: none; color: #F2EFEA; cursor: pointer; display: flex; align-items: center; justify-content: center">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+      </button>
+    </div>
+    <div style="display: flex; gap: 24px; flex: 1; min-height: 0">
+      <aside aria-label="Zutaten" style="width: 380px; flex-shrink: 0; background: #17191C; border: 1px solid #24272B; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; min-height: 0">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <button type="button" onClick="{{lessServ}}" aria-label="Weniger Portionen" style="width: 48px; height: 48px; border-radius: 12px; border: 1px solid #3A3E44; background: none; color: #F2EFEA; font-size: 24px; cursor: pointer">−</button>
+          <span style="flex: 1; text-align: center; font-size: 20px; font-weight: 600">{{servLabel}}</span>
+          <button type="button" onClick="{{moreServ}}" aria-label="Mehr Portionen" style="width: 48px; height: 48px; border-radius: 12px; border: 1px solid #3A3E44; background: none; color: #F2EFEA; font-size: 24px; cursor: pointer">+</button>
+        </div>
+        <div style="display: flex; flex-direction: column; overflow-y: auto; min-height: 0">
+          <sc-for list="{{cookIngr}}" as="z" hint-placeholder-count="5">
+            <div style="display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #222529; font-size: 19px">
+              <span style="min-width: 96px; color: #D4B37A; font-weight: 600">{{z.q}}</span>
+              <span style="flex: 1">{{z.t}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </aside>
+      <section aria-label="Arbeitsschritt" style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 24px; background: #17191C; border: 1px solid #24272B; border-radius: 20px; padding: 36px; box-sizing: border-box">
+        <sc-if value="{{hasSteps}}" hint-placeholder-val="{{ true }}">
+          <p style="margin: 0; font-size: 34px; line-height: 1.4; flex: 1">{{stepText}}</p>
+        </sc-if>
+        <sc-if value="{{noSteps}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-size: 26px; line-height: 1.4; color: #C9C6C0; flex: 1">Zu diesem Rezept ist keine Anleitung gespeichert. Die Zutaten stehen links, die Anleitung findest du im Original.</p>
+        </sc-if>
+        <sc-if value="{{hasTimer}}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{timerTap}}" style="{{timerStyle}}">{{timerLabel}}</button>
+        </sc-if>
+        <div style="display: flex; gap: 16px">
+          <button type="button" onClick="{{prevStep}}" style="{{prevStyle}}">Zurück</button>
+          <button type="button" onClick="{{nextStep}}" style="font: inherit; flex: 2; min-height: 72px; border-radius: 16px; border: none; background: #D4B37A; color: #0E0F11; font-size: 24px; font-weight: 600; cursor: pointer">{{nextLabel}}</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</sc-if>
+</sc-if>
+
+<!-- Nachtmodus -->
+<sc-if value="{{nightMode}}" hint-placeholder-val="{{ false }}">
+  <div style="width: 1366px; height: 1024px; background: #000000; display: flex; align-items: center; justify-content: center">
+    <div style="{{shiftStyle}}">
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 200px; font-weight: 500; line-height: 1; letter-spacing: -6px; color: #8A7550; font-variant-numeric: tabular-nums">{{time}}</div>
+      <div style="font-size: 26px; color: #6B5A3D">{{nightLine}}</div>
+    </div>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#D4B37A","options":["#D4B37A","#8DB4F0","#C7A3E0"]},"walkMinutes":{"editor":"int","default":4,"min":1,"max":15},"night":{"editor":"enum","default":"auto","options":["auto","an","aus"]},"$preview":{"width":1366,"height":1024}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      now: new Date(),
+      open: null,
+      draft: '',
+      nextId: 6,
+      // Gleiches Datenformat wie die Partner-App: t = Name, g = Gruppe, q = Menge, u = Rezept-Link, r = Rezeptname
+      recipes: [
+        { id: 'r1', name: 'Weihnachtsmarmelade Apfel-Kirsch mit Zimt', url: 'https://www.familienkost.de/rezept_weihnachtsmarmelade_apfel-kirsch_mit_zimt.html', servings: 6, unit: 'Gläser', time: 19, status: 'list',
+          ingredients: [{ q: '750 g', t: 'Sauerkirschen (TK)' }, { q: '250 g', t: 'Äpfel' }, { q: '500 g', t: 'Gelierzucker 2:1' }, { q: '1 TL', t: 'Zimt' }, { q: '2 TL', t: 'Zitronensaft' }],
+          steps: ['Die gefrorenen Sauerkirschen in eine große Schüssel geben und gleich mit dem Gelierzucker mischen.',
+            'Den Apfel schälen, entkernen und fein würfeln. Mit Zitronensaft und Zimt unter die Kirschen rühren.',
+            'Alles auftauen lassen und ab und zu umrühren. In der Zeit die Gläser auskochen und abtropfen lassen.',
+            'Die aufgetaute Masse unter Rühren aufkochen und etwa 4 Minuten sprudelnd kochen lassen. Wer mag, püriert sie danach.',
+            'Die heiße Marmelade in die Gläser füllen, fest verschließen und vollständig abkühlen lassen.'] },
+        { id: 'r2', name: 'Kürbissuppe', url: null, servings: 4, unit: 'Portionen', time: 40, status: 'list',
+          ingredients: [{ q: '1', t: 'Hokkaido-Kürbis' }, { q: '400 ml', t: 'Kokosmilch' }, { q: '1 Stück', t: 'Ingwer' }, { q: '1', t: 'Zwiebel' }],
+          steps: ['Kürbis waschen, entkernen und mit Schale würfeln. Zwiebel und Ingwer fein hacken.', 'Zwiebel und Ingwer in etwas Öl 3 Minuten andünsten, dann den Kürbis dazugeben.', 'Mit 600 ml Wasser auffüllen und 20 Minuten köcheln lassen.', 'Kokosmilch dazugeben, fein pürieren und abschmecken.'] },
+        { id: 'r3', name: 'Lasagne', url: null, servings: 4, unit: 'Portionen', time: 75, status: 'saved',
+          ingredients: [{ q: '250 g', t: 'Lasagneplatten' }, { q: '2', t: 'Passierte Tomaten' }, { q: '500 g', t: 'Hackfleisch' }],
+          steps: ['Soße kochen.', 'Schichten.', '45 Minuten backen.'] }
+      ],
+      cook: null,
+      timer: null,
+      shop: [
+        { t: 'Hafermilch', g: 'Allgemein', done: false },
+        { t: 'Bananen', g: 'Allgemein', done: false },
+        { t: 'Kaffeebohnen', g: 'Allgemein', done: true },
+        { t: 'Katzenfutter Nassfutter', g: 'Allgemein', q: '12 Dosen', done: false },
+        { t: 'Sauerkirschen (TK)', g: 'Weihnachtsmarmelade Apfel-Kirsch mit Zimt', r: 'r1', q: '750 g', done: false },
+        { t: 'Äpfel', g: 'Weihnachtsmarmelade Apfel-Kirsch mit Zimt', r: 'r1', q: '250 g', done: false },
+        { t: 'Gelierzucker 2:1', g: 'Weihnachtsmarmelade Apfel-Kirsch mit Zimt', r: 'r1', q: '500 g', done: false },
+        { t: 'Zimt', g: 'Weihnachtsmarmelade Apfel-Kirsch mit Zimt', r: 'r1', q: '1 TL', done: true },
+        { t: 'Hokkaido-Kürbis', g: 'Kürbissuppe', r: 'r2', q: '1', done: false },
+        { t: 'Kokosmilch', g: 'Kürbissuppe', r: 'r2', q: '400 ml', done: false },
+        { t: 'Ingwer', g: 'Kürbissuppe', r: 'r2', done: false },
+        { t: 'Spülmaschinentabs', g: 'Drogerie', done: false },
+        { t: 'Zahnpasta', g: 'Drogerie', done: false },
+        { t: 'Katzenstreu', g: 'Haushalt', done: false },
+        { t: 'Glühbirne E27', g: 'Haushalt', done: false }
+      ],
+      tasks: [
+        { id: 1, text: 'Bad putzen', who: 'Rik', done: true },
+        { id: 2, text: 'Staubsaugen', who: 'Melina', done: false },
+        { id: 3, text: 'Katzenklo komplett', who: 'Rik', done: false },
+        { id: 4, text: 'Bettwäsche wechseln', who: 'Melina', done: false },
+        { id: 5, text: 'Kühlschrank aufräumen', who: 'Beide', done: false }
+      ],
+      cats: { morgens: true, abends: false, klo: false }
+    };
+  }
+  componentDidMount() {
+    const tick = () => this.setState({ now: new Date() });
+    const msToMinute = 60000 - (Date.now() % 60000);
+    this.align = setTimeout(() => { tick(); this.timer = setInterval(tick, 60000); }, msToMinute);
+  }
+  componentWillUnmount() { clearTimeout(this.align); clearInterval(this.timer); clearInterval(this.tick1); }
+
+  // Menge umrechnen: "750 g" mal 0,5 = "375 g", "1–2 EL" bleibt Spanne
+  scaleQ(q, f) {
+    if (!q || f === 1) return q || '';
+    const FR = { '½': 0.5, '¼': 0.25, '¾': 0.75, '⅓': 1 / 3, '⅔': 2 / 3 };
+    const fmt = (n) => { const r = n >= 10 ? Math.round(n) : Math.round(n * 10) / 10; return String(r).replace('.', ','); };
+    return q.replace(/(\d+(?:[.,]\d+)?|[½¼¾⅓⅔])/g, (m) => fmt((FR[m] != null ? FR[m] : parseFloat(m.replace(',', '.'))) * f));
+  }
+  stepMinutes(t) {
+    const m = String(t || '').match(/(\d+)\s*(?:[–-]\s*\d+\s*)?(Minuten|Minute|Min\.?|Stunden|Stunde|Std\.?)/i);
+    if (!m) return 0;
+    return /^St/i.test(m[2]) ? +m[1] * 60 : +m[1];
+  }
+  setRecipe(rid, patch) { this.setState((s) => ({ recipes: s.recipes.map((r) => r.id === rid ? Object.assign({}, r, patch) : r) })); }
+  dropRecipe(rid) { this.setState((s) => ({ recipes: s.recipes.map((r) => r.id === rid ? Object.assign({}, r, { status: 'saved' }) : r), shop: s.shop.filter((x) => x.r !== rid) })); }
+  cookRecipe(rid) {
+    this.setState((s) => {
+      const r = s.recipes.find((x) => x.id === rid);
+      return { recipes: s.recipes.map((x) => x.id === rid ? Object.assign({}, x, { status: 'today' }) : (x.status === 'today' ? Object.assign({}, x, { status: 'list' }) : x)),
+        cook: { rid, step: 0, servings: r ? r.servings || 1 : 1 }, open: null };
+    });
+  }
+  rebuy(rid) {
+    this.setState((s) => {
+      const r = s.recipes.find((x) => x.id === rid);
+      if (!r) return null;
+      const add = r.ingredients.map((z) => ({ t: z.t, q: z.q, g: r.name, r: rid, done: false }));
+      return { recipes: s.recipes.map((x) => x.id === rid ? Object.assign({}, x, { status: 'list' }) : x), shop: s.shop.filter((x) => x.r !== rid).concat(add) };
+    });
+  }
+  startTimer(min) {
+    clearInterval(this.tick1);
+    this.setState({ timer: { endsAt: Date.now() + min * 60000, total: min, now: Date.now() } });
+    this.tick1 = setInterval(() => this.setState((s) => s.timer ? { timer: Object.assign({}, s.timer, { now: Date.now() }) } : null), 1000);
+  }
+  stopTimer() { clearInterval(this.tick1); this.setState({ timer: null }); }
+
+  box(done, accent) {
+    return 'width: 24px; height: 24px; flex-shrink: 0; border-radius: 7px; box-sizing: border-box; ' +
+      (done ? 'background: ' + accent + '; border: 2px solid ' + accent : 'border: 2px solid #7A7E85');
+  }
+  txt(done, size) {
+    return 'font-size: ' + size + 'px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ' +
+      (done ? 'color: #85888E; text-decoration: line-through' : 'color: #F2EFEA');
+  }
+  addTask() {
+    this.setState((s) => {
+      const t = s.draft.trim();
+      if (!t) return null;
+      return { tasks: s.tasks.concat([{ id: s.nextId, text: t, who: 'Beide', done: false }]), nextId: s.nextId + 1, draft: '' };
+    });
+  }
+
+  renderVals() {
+    const now = this.state.now;
+    const pad = (n) => String(n).padStart(2, '0');
+    const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+    const dshort = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+    const months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+    const walk = this.props.walkMinutes ?? 4;
+    const accent = this.props.accent ?? '#D4B37A';
+    const nightProp = this.props.night ?? 'auto';
+    const h = now.getHours();
+    const isNight = nightProp === 'an' || (nightProp === 'auto' && (h >= 22 || h < 6));
+
+    // Beispieltermine, so wie die Funktion "calendar" im Projekt Haushalt sie liefert (Stand 17.11.2026).
+    // In der echten App kommen sie live: POST https://gzyhpjcyuyepkpapcnyu.supabase.co/functions/v1/calendar mit dem Haushaltscode.
+    const calRaw = [
+      { date: '2026-11-17', time: '11:00', title: 'Besprechung', cal: 'Haushalt' },
+      { date: '2026-11-18', time: '11:00', title: 'Treffen mit Freunden', cal: 'Haushalt' },
+      { date: '2026-11-19', time: null, title: 'Geburtstag Max', cal: 'Haushalt' },
+      { date: '2026-11-20', time: null, title: 'Handwerker', cal: 'Haushalt' },
+      { date: '2026-11-21', time: null, title: 'Kurs 15:00', cal: 'Haushalt' },
+      { date: '2026-11-24', time: null, title: '17;00 Sport', cal: 'Haushalt' },
+      { date: '2026-11-26', time: '08:00', title: 'Teamfeier', cal: 'Haushalt' },
+      { date: '2026-11-28', time: '19:00', title: 'Konzert', cal: 'Haushalt' },
+      { date: '2026-11-29', time: null, title: 'Essen bei Verwandten', cal: 'Haushalt' },
+      { date: '2026-12-01', time: null, title: 'Termin 15:45', cal: 'Haushalt' },
+      { date: '2026-12-01', time: '09:00', title: 'Klausur', cal: 'Haushalt' }
+    ];
+    // Uhrzeit, die nur im Titel steht (z. B. "Kurs 15:00" oder "17;00 Sport"), herausziehen
+    const tidy = (e) => {
+      if (e.time) return e;
+      const m = e.title.match(/(^|\s)(\d{1,2})[:;.](\d{2})(\s|$)/);
+      if (!m) return e;
+      return Object.assign({}, e, { time: m[2].padStart(2, '0') + ':' + m[3], title: e.title.replace(m[0], ' ').replace(/\s+/g, ' ').trim() });
+    };
+    const nowHM = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const cal = calRaw.map(tidy).sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00'))).map((e) => {
+      const d = new Date(e.date + 'T00:00:00');
+      const diff = Math.round((d - today0) / 86400000);
+      const rel = diff === 0 ? 'Heute' : diff === 1 ? 'Morgen' : dshort[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.';
+      const soon = diff <= 1;
+      return {
+        day: diff === 0 ? 'Heute' : diff === 1 ? 'Morgen' : dshort[d.getDay()],
+        title: e.title, cal: e.cal, diff, past: diff === 0 && e.time && e.time < nowHM,
+        when: rel + ' · ' + (e.time ? e.time + ' Uhr' : 'ganztägig'),
+        dayStyle: 'font-size: 13px; font-weight: 600; min-width: 60px; text-align: center; padding: 6px 4px; border-radius: 8px; flex-shrink: 0; box-sizing: border-box; ' +
+          (soon ? 'background: #2A251B; color: ' + accent : 'background: #1F2226; color: #C9C6C0')
+      };
+    }).filter((e) => e.diff >= 0 && !e.past).map((e) => Object.assign({}, e, { when: e.when + (e.cal !== 'Haushalt' ? ' · ' + e.cal : '') }));
+    const todayEv = cal.filter((e) => e.diff === 0);
+    const next = cal[0];
+
+    // Einkauf nach Laden clustern: Lebensmittelmarkt (mit Rezepten als Untergruppen), Drogerie, Andere.
+    // Zuordnung aus den Gruppen der Partner-App: Allgemein -> Lebensmittel, Gruppe mit Rezept-Link -> Lebensmittel / Rezept, Drogerie -> Drogerie, alles andere -> Andere.
+    const shop = this.state.shop.map((x, i) => ({
+      text: x.t, q: x.q || '', done: x.done, checked: x.done ? 'true' : 'false',
+      store: (x.r || x.u) ? 'food' : x.g === 'Drogerie' ? 'drug' : (!x.g || x.g === 'Allgemein') ? 'food' : 'other',
+      recipe: x.r || (x.u ? x.g : null),
+      boxStyle: this.box(x.done, accent), textStyle: this.txt(x.done, 17),
+      toggle: () => this.setState((s) => ({ shop: s.shop.map((y, j) => j === i ? Object.assign({}, y, { done: !y.done }) : y) }))
+    }));
+    const byDone = (a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0);
+    const recById = {}; this.state.recipes.forEach((r) => { recById[r.id] = r; });
+    const STORES = [['food', 'Lebensmittelmarkt', '#7FC8A9'], ['drug', 'Drogerie', '#B9A3F0'], ['other', 'Andere', '#9A9DA3']];
+    const shopGroups = STORES.map(([k, name, color]) => {
+      const items = shop.filter((x) => x.store === k);
+      const plain = items.filter((x) => !x.recipe).sort(byDone);
+      const recipes = [...new Set(items.filter((x) => x.recipe).map((x) => x.recipe))];
+      const subs = [];
+      if (plain.length) subs.push({ isRecipe: false, title: '', items: plain, boxStyle: 'display: flex; flex-direction: column' });
+      recipes.forEach((r) => { const rec = recById[r]; const title = rec ? rec.name : r; subs.push({ isRecipe: true, title, items: items.filter((x) => x.recipe === r).sort(byDone),
+        cook: () => this.cookRecipe(r), drop: () => this.dropRecipe(r), cookLabel: 'Heute kochen: ' + title, dropLabel: 'Rezept abwählen: ' + title,
+        boxStyle: 'display: flex; flex-direction: column; margin: 4px 0 2px 6px; padding-left: 12px; border-left: 2px solid #3A3226' }); });
+      const open = items.filter((x) => !x.done).length;
+      return { name, count: open ? open + ' offen' : 'erledigt', subs, n: items.length,
+        dotStyle: 'width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; background: ' + color };
+    }).filter((g) => g.n > 0);
+
+    const WHO = ['Rik', 'Melina', 'Beide'];
+    const whoColors = { Rik: 'background: #173A36; color: #9DE6DA', Melina: 'background: #2C2442; color: #D4C6F7', Beide: 'background: #26292E; color: #E2DFD9' };
+    const tasks = this.state.tasks.map((x) => ({
+      text: x.text, who: x.who, checked: x.done ? 'true' : 'false',
+      boxStyle: this.box(x.done, accent), textStyle: this.txt(x.done, 18),
+      whoStyle: 'font: inherit; font-size: 14px; font-weight: 600; min-width: 76px; min-height: 36px; padding: 0 12px; border-radius: 999px; border: none; cursor: pointer; flex-shrink: 0; ' + whoColors[x.who],
+      whoLabel: 'Zuständig: ' + x.who + '. Tippen zum Wechseln',
+      delLabel: 'Aufgabe löschen: ' + x.text,
+      toggle: () => this.setState((s) => ({ tasks: s.tasks.map((y) => y.id === x.id ? Object.assign({}, y, { done: !y.done }) : y) })),
+      cycle: () => this.setState((s) => ({ tasks: s.tasks.map((y) => y.id === x.id ? Object.assign({}, y, { who: WHO[(WHO.indexOf(y.who) + 1) % WHO.length] }) : y) })),
+      remove: () => this.setState((s) => ({ tasks: s.tasks.filter((y) => y.id !== x.id) }))
+    }));
+    const openTasks = this.state.tasks.filter((x) => !x.done).length;
+
+    const c = this.state.cats;
+    const catDef = [['morgens', 'Morgens', 'Gefüttert', 'Füttern'], ['abends', 'Abends', 'Gefüttert', 'Füttern'], ['klo', 'Klo', 'Sauber', 'Reinigen']];
+    const catChecks = catDef.map(([k, label, yes, no]) => ({
+      label, state: c[k] ? yes : no, checked: c[k] ? 'true' : 'false',
+      btnStyle: 'display: flex; flex-direction: column; gap: 4px; align-items: flex-start; padding: 10px; min-width: 0; min-height: 72px; border-radius: 14px; cursor: pointer; text-align: left; color: #F2EFEA; box-sizing: border-box; ' +
+        (c[k] ? 'background: #2A251B; border: 1px solid ' + accent : 'background: #1F2226; border: 1px solid #3A3E44'),
+      toggle: () => this.setState((s) => ({ cats: Object.assign({}, s.cats, { [k]: !s.cats[k] }) }))
+    }));
+    const catOpen = [];
+    if (!c.morgens) catOpen.push('morgens füttern');
+    if (!c.abends) catOpen.push('abends füttern');
+    if (!c.klo) catOpen.push('Klo');
+    const catTodo = catOpen.length ? 'Katzen: ' + catOpen.join(', ') : 'Katzen: alles erledigt';
+
+    const rawDeps = [
+      { line: '136', dir: 'Richtung Zentrum', mins: 3, metro: false },
+      { line: 'M36', dir: 'Endstation', mins: 7, metro: true },
+      { line: '136', dir: 'Richtung Zentrum', mins: 13, metro: false },
+      { line: 'M36', dir: 'Endstation', mins: 18, metro: true }
+    ];
+    const deps = rawDeps.filter((d) => d.mins - walk >= 0).slice(0, 3).map((d) => {
+      const left = d.mins - walk;
+      return {
+        line: d.line, dir: d.dir, mins: d.mins,
+        go: left === 0 ? 'Jetzt los' : 'Los in ' + left + ' Min',
+        lineStyle: 'font-family: Space Grotesk, sans-serif; font-size: 15px; font-weight: 600; min-width: 48px; text-align: center; padding: 6px 8px; border-radius: 8px; box-sizing: border-box; flex-shrink: 0; ' +
+          (d.metro ? 'background: #F2EFEA; color: #0E0F11' : 'background: #8E2A6B; color: #FFFFFF'),
+        goStyle: 'font-size: 20px; font-weight: 600; line-height: 1.2; ' + (left <= 2 ? 'color: ' + accent : 'color: #F2EFEA')
+      };
+    });
+
+    const open = this.state.open;
+    let ovTitle = '', ovItems = [];
+    if (open === 'cal') { ovTitle = 'Kalender'; }
+
+    const todayRec = this.state.recipes.find((r) => r.status === 'today');
+    const saved = this.state.recipes.filter((r) => r.status === 'saved');
+    const savedList = saved.map((r) => ({ name: r.name, meta: r.servings + ' ' + (r.unit || 'Portionen') + (r.time ? ' · ' + r.time + ' Min' : '') + ' · ' + (r.steps.length ? r.steps.length + ' Schritte' : 'ohne Anleitung'),
+      rebuy: () => this.rebuy(r.id), cook: () => this.cookRecipe(r.id) }));
+    const ck = this.state.cook;
+    const cr = ck ? this.state.recipes.find((r) => r.id === ck.rid) : null;
+    const nSteps = cr ? cr.steps.length : 0;
+    const stepIdx = ck ? Math.min(ck.step, Math.max(0, nSteps - 1)) : 0;
+    const stepText = cr && nSteps ? cr.steps[stepIdx] : '';
+    const stepMin = this.stepMinutes(stepText);
+    const tm = this.state.timer;
+    const left = tm ? Math.max(0, Math.round((tm.endsAt - tm.now) / 1000)) : 0;
+    const timerRunning = !!tm;
+    const timerLabel = timerRunning ? (left > 0 ? 'Timer läuft · ' + Math.floor(left / 60) + ':' + pad(left % 60) + ' · Stopp' : 'Zeit ist um · Timer aus') : 'Timer starten · ' + stepMin + ':00';
+    const timerStyle = 'font: inherit; align-self: flex-start; min-height: 64px; padding: 0 24px; border-radius: 16px; font-size: 24px; font-weight: 600; cursor: pointer; ' +
+      (timerRunning ? (left > 0 ? 'background: #2A251B; border: 2px solid ' + accent + '; color: ' + accent : 'background: ' + accent + '; border: none; color: #0E0F11') : 'background: none; border: 2px solid #3A3E44; color: #F2EFEA');
+    const factor = cr ? (ck.servings / (cr.servings || 1)) : 1;
+    const lastStep = !nSteps || stepIdx >= nSteps - 1;
+    const finish = () => { clearInterval(this.tick1); this.setState((s) => ({ timer: null, cook: null, recipes: s.recipes.map((r) => r.id === ck.rid ? Object.assign({}, r, { status: 'saved' }) : r), shop: s.shop.filter((x) => x.r !== ck.rid) })); };
+
+    const shift = (now.getMinutes() % 5) - 2;
+    const allBtn = 'background: none; border: none; color: ' + accent + '; font-size: 15px; min-height: 44px; min-width: 44px; padding: 0 12px; cursor: pointer';
+    const hasDraft = this.state.draft.trim().length > 0;
+
+    return {
+      dayMode: !isNight,
+      nightMode: isNight,
+      time: pad(h) + ':' + pad(now.getMinutes()),
+      dateLabel: days[now.getDay()] + ', ' + now.getDate() + '. ' + months[now.getMonth()],
+      nextTitle: todayEv.length ? todayEv[0].title : 'Heute nichts mehr',
+      nextMeta: todayEv.length ? todayEv[0].when : (next ? 'Als Nächstes: ' + next.title + ', ' + next.when : ''),
+      nextBar: 'width: 6px; border-radius: 3px; flex-shrink: 0; background: ' + accent,
+      nightLine: next ? next.when + ' ' + next.title + ' · 6°' : '6°',
+      shiftStyle: 'display: flex; flex-direction: column; align-items: center; gap: 12px; transform: translate(' + (shift * 3) + 'px, ' + (shift * -2) + 'px)',
+      catTodo,
+      taskTodo: openTasks ? 'Diese Woche: ' + openTasks + ' Aufgaben offen' : 'Diese Woche: alles erledigt',
+      allBtn,
+      walkLabel: walk + ' Min zu Fuß',
+      calTop: cal.slice(0, 3),
+      ovCal: cal,
+      shopGroups,
+      shopOpen: shop.filter((x) => !x.done).length,
+      tasks,
+      noTasks: tasks.length === 0,
+      taskDone: this.state.tasks.filter((x) => x.done).length,
+      taskTotal: this.state.tasks.length,
+      draft: this.state.draft,
+      onDraft: (e) => this.setState({ draft: e.target.value }),
+      onKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addTask(); } },
+      addTask: () => this.addTask(),
+      addBtn: 'font: inherit; font-size: 15px; font-weight: 600; min-height: 48px; padding: 0 16px; border-radius: 12px; border: none; cursor: pointer; ' +
+        (hasDraft ? 'background: ' + accent + '; color: #0E0F11' : 'background: #26292E; color: #9A9DA3'),
+      catChecks, deps,
+      overlayOpen: open !== null,
+      ovIsCal: open === 'cal',
+      ovIsList: false,
+      ovTitle, ovItems,
+      openCal: () => this.setState({ open: 'cal' }),
+      closeOv: () => this.setState({ open: null }),
+      openSaved: () => this.setState({ open: 'saved' }),
+      savedCount: saved.length,
+      ovIsSaved: open === 'saved',
+      savedList, noSaved: saved.length === 0,
+      hasToday: !!todayRec, todayName: todayRec ? todayRec.name : '',
+      openTodayCook: () => todayRec && this.setState({ cook: { rid: todayRec.id, step: 0, servings: todayRec.servings || 1 } }),
+      cookOpen: !!cr,
+      cookName: cr ? cr.name : '',
+      cookCounter: nSteps ? 'Schritt ' + (stepIdx + 1) + ' von ' + nSteps : 'Zutaten',
+      cookIngr: cr ? cr.ingredients.map((z) => ({ q: this.scaleQ(z.q, factor), t: z.t })) : [],
+      servLabel: ck ? ck.servings + ' ' + (cr && cr.unit ? cr.unit : 'Portionen') : '',
+      lessServ: () => this.setState((s) => s.cook ? { cook: Object.assign({}, s.cook, { servings: Math.max(1, s.cook.servings - 1) }) } : null),
+      moreServ: () => this.setState((s) => s.cook ? { cook: Object.assign({}, s.cook, { servings: Math.min(40, s.cook.servings + 1) }) } : null),
+      hasSteps: nSteps > 0, noSteps: !!cr && nSteps === 0,
+      stepText,
+      hasTimer: stepMin > 0 || timerRunning,
+      timerLabel, timerStyle,
+      timerTap: () => (timerRunning ? this.stopTimer() : this.startTimer(stepMin)),
+      prevStep: () => this.setState((s) => s.cook ? { cook: Object.assign({}, s.cook, { step: Math.max(0, s.cook.step - 1) }) } : null),
+      prevStyle: 'font: inherit; flex: 1; min-height: 72px; border-radius: 16px; border: 1px solid #3A3E44; background: none; color: ' + (stepIdx > 0 ? '#F2EFEA' : '#5A5E64') + '; font-size: 22px; cursor: pointer',
+      nextStep: () => (lastStep ? finish() : this.setState((s) => ({ cook: Object.assign({}, s.cook, { step: s.cook.step + 1 }) }))),
+      nextLabel: lastStep ? 'Fertig, in die Sammlung' : 'Weiter',
+      closeCook: () => this.setState({ cook: null })
+    };
+  }
+}
+</script>
+</body>
+</html>
