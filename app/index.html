@@ -22,6 +22,9 @@
 
   <main id="day" class="day">
 
+    <!-- Linke Spalte: Uhr, Notizen, Bus, Heute zu tun -->
+    <div class="stack stack-a">
+
     <!-- Uhr, Heute, Wetter -->
     <section id="tile-clock" class="tile tile-clock" aria-label="Uhrzeit, heute und Wetter">
       <div class="clock-head">
@@ -53,8 +56,9 @@
     <!-- Notizen (gemeinsamer Zettel, Eintraege in tasks mit note: true, synchronisiert) -->
     <section id="tile-notes" class="tile tile-notes" aria-label="Notizen">
       <div class="tile-head">
-        <h2 class="h">Notizen</h2>
+        <h2 class="h"><button type="button" class="min-btn"><span class="chev" aria-hidden="true"></span><span id="notes-title" class="min-title">Notizen</span></button></h2>
       </div>
+      <button id="pv-notes" type="button" class="preview"></button>
       <div id="note-list" class="scroll note-list"></div>
       <div id="note-empty" class="empty" hidden>Noch keine Notizen. Unten eine schreiben.</div>
       <span class="hint">Chip: an wen, × löscht</span>
@@ -67,15 +71,27 @@
       </form>
     </section>
 
+    <!-- Bus -->
+    <section id="tile-bus" class="tile tile-bus" aria-label="Abfahrten">
+      <div class="tile-head tile-head-base">
+        <h2 class="h"><button type="button" class="min-btn"><span class="chev" aria-hidden="true"></span><span id="bus-title" class="min-title">Bus</span></button></h2>
+        <span id="walk-label" class="hint"></span>
+      </div>
+      <button id="pv-bus" type="button" class="preview"></button>
+      <div id="bus-list" class="bus-list"></div>
+      <div id="bus-note" class="hint bus-note" hidden></div>
+    </section>
+
     <!-- Heute zu tun (gleicher Aufbau wie Diese Woche, Eintraege mit today: true) -->
-    <section id="tile-today" class="tile tile-tasks tile-today" aria-label="Heute zu tun">
+    <section id="tile-today" class="tile tile-today" aria-label="Heute zu tun">
       <div class="tile-head">
-        <h2 id="hd-title" class="h">Heute zu tun</h2>
+        <h2 class="h"><button type="button" class="min-btn"><span class="chev" aria-hidden="true"></span><span id="hd-title" class="min-title">Heute zu tun</span></button></h2>
         <button id="btn-sync" type="button" class="sync-btn" aria-label="Verbindung">
           <span id="sync-dot" class="sync-dot" aria-hidden="true"></span>
           <span id="sync-label"></span>
         </button>
       </div>
+      <button id="pv-today" type="button" class="preview"></button>
       <div id="hd-list" class="scroll task-list"></div>
       <div id="hd-empty" class="empty" hidden>Noch nichts für heute. Unten eine hinzufügen.</div>
       <span class="hint">Text: abhaken · Chip: Zuständigkeit wechseln</span>
@@ -88,23 +104,54 @@
       </form>
     </section>
 
+    </div>
+
+    <!-- Mittlere Spalte: Kalender, Diese Woche -->
+    <div class="stack stack-b">
+
     <!-- Kalender -->
     <section id="tile-cal" class="tile tile-cal" aria-label="Kalender">
       <div class="tile-head">
-        <h2 class="h">Kalender</h2>
+        <h2 class="h"><button type="button" class="min-btn"><span class="chev" aria-hidden="true"></span><span id="cal-title" class="min-title">Kalender</span></button></h2>
         <button id="btn-cal-all" type="button" class="btn-link">Alle</button>
       </div>
+      <button id="pv-cal" type="button" class="preview"></button>
       <div id="cal-top" class="cal-top"></div>
       <div id="cal-note" class="hint cal-note" hidden></div>
       <div id="cal-month" class="cal-month" hidden></div>
     </section>
 
+    <!-- Diese Woche -->
+    <section id="tile-tasks" class="tile tile-tasks" aria-label="Diese Woche">
+      <div class="tile-head">
+        <h2 class="h"><button type="button" class="min-btn"><span class="chev" aria-hidden="true"></span><span id="tasks-title" class="min-title">Diese Woche</span></button></h2>
+        <button id="btn-week-reset" type="button" class="btn-link">Woche neu starten</button>
+      </div>
+      <button id="pv-tasks" type="button" class="preview"></button>
+      <div id="task-list" class="scroll task-list"></div>
+      <div id="task-empty" class="empty" hidden>Noch keine Aufgaben. Unten eine hinzufügen.</div>
+      <span class="hint">Text: abhaken · Chip: Zuständigkeit wechseln</span>
+      <form id="task-form" class="task-form" autocomplete="off">
+        <label class="grow">
+          <span class="sr">Neue Aufgabe</span>
+          <input id="task-input" type="text" placeholder="Neue Aufgabe, z. B. Fenster putzen" maxlength="60">
+        </label>
+        <button id="task-add" type="submit" class="btn-add">Hinzufügen</button>
+      </form>
+    </section>
+
+    </div>
+
+    <!-- Rechte Spalte: Einkauf ueber die ganze Hoehe -->
+    <div class="stack stack-c">
+
     <!-- Einkauf -->
     <section id="tile-shop" class="tile tile-shop" aria-label="Einkaufsliste">
       <div class="tile-head">
-        <h2 id="shop-title" class="h">Einkauf</h2>
+        <h2 class="h"><button type="button" class="min-btn"><span class="chev" aria-hidden="true"></span><span id="shop-title" class="min-title">Einkauf</span></button></h2>
         <button id="btn-saved" type="button" class="btn-link">Sammlung</button>
       </div>
+      <button id="pv-shop" type="button" class="preview"></button>
       <div id="shop-list" class="scroll shop-list"></div>
       <form id="shop-form" class="task-form shop-form" autocomplete="off">
         <label class="grow">
@@ -122,35 +169,15 @@
       </form>
     </section>
 
-    <!-- Diese Woche -->
-    <section id="tile-tasks" class="tile tile-tasks" aria-label="Diese Woche">
-      <div class="tile-head">
-        <h2 id="tasks-title" class="h">Diese Woche</h2>
-        <button id="btn-week-reset" type="button" class="btn-link">Woche neu starten</button>
-      </div>
-      <div id="task-list" class="scroll task-list"></div>
-      <div id="task-empty" class="empty" hidden>Noch keine Aufgaben. Unten eine hinzufügen.</div>
-      <span class="hint">Text: abhaken · Chip: Zuständigkeit wechseln</span>
-      <form id="task-form" class="task-form" autocomplete="off">
-        <label class="grow">
-          <span class="sr">Neue Aufgabe</span>
-          <input id="task-input" type="text" placeholder="Neue Aufgabe, z. B. Fenster putzen" maxlength="60">
-        </label>
-        <button id="task-add" type="submit" class="btn-add">Hinzufügen</button>
-      </form>
-    </section>
-
-    <!-- Bus -->
-    <section id="tile-bus" class="tile tile-bus" aria-label="Abfahrten">
-      <div class="tile-head tile-head-base">
-        <h2 id="bus-title" class="h">Bus</h2>
-        <span id="walk-label" class="hint"></span>
-      </div>
-      <div id="bus-list" class="bus-list"></div>
-      <div id="bus-note" class="hint bus-note" hidden></div>
-    </section>
+    </div>
 
   </main>
+
+  <!-- Fokusansicht: eine Kachel gross ueber dem Raster. Das Raster selbst bleibt unveraendert. -->
+  <div id="focus" class="focus" hidden>
+    <button id="focus-scrim" type="button" class="scrim" tabindex="-1" aria-label="Schließen"></button>
+    <div id="focus-card" class="focus-card" role="dialog" aria-modal="true"></div>
+  </div>
 
   <!-- Overlay: Kalender oder Sammlung -->
   <div id="overlay" class="overlay" hidden>
@@ -284,7 +311,7 @@
 
           <button id="cfg-clear" type="button" class="btn-ghost">Orts-Einstellungen löschen</button>
         </section>
-        <p class="set-msg" id="app-version">Version 2.11 (18.11.2026)</p>
+        <p class="set-msg" id="app-version">Version 2.12 (18.11.2026)</p>
       </div>
     </div>
   </div>

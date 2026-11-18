@@ -1,6 +1,6 @@
 # Übergabe aus Claude (Chat) an Claude Code
 
-Stand: 17.11.2026. Die ausführliche Projektdoku mit allen Revisionen und Entscheidungen: https://claude.ai/artifact/SmfpLv2nMkUW5ivbwNt6YK
+Stand: 18.11.2026. Die ausführliche Projektdoku mit allen Revisionen und Entscheidungen: https://claude.ai/artifact/SmfpLv2nMkUW5ivbwNt6YK
 
 ## Was fertig ist
 - Design-Entwurf des Cockpits (Version 1.2), siehe `design/cockpit-entwurf.dc.html` und https://claude.ai/artifact/NLUYpWWzUV2xYTNvT64Dsb
@@ -28,6 +28,7 @@ Stand: 17.11.2026. Die ausführliche Projektdoku mit allen Revisionen und Entsch
 ## Revisionen
 | Version | Datum | Änderung |
 | --- | --- | --- |
+| 2.12 | 18.11.2026 | Layout neu gebaut, nichts überlappt mehr. Kacheln liegen in drei Spalten-Stapeln und teilen sich die Höhe nach Inhalt, Listen scrollen in ihrer Kachel. Heute zu tun lag im Querformat unter Diese Woche (falsche Klasse), Notizen ragten in den Bus, Einkauf wurde unten abgeschnitten: behoben. Tipp auf den Titel klappt eine Kachel ein, sie zeigt dann eine Vorschau-Zeile (pro Gerät gespeichert). Wird es im Querformat zu eng, wechselt die Kachel mit dem wenigsten Inhalt von selbst auf die Vorschau, Antippen holt sie zurück. Vergrößern öffnet eine Fokusansicht über dem Raster (Einkauf nach Laden in Spalten, Kalender mit Monat und Tagesliste nebeneinander, Listen zweispaltig), schließen mit Tipp daneben oder Escape. Tablet hochkant zwei Spalten ohne Lücken. Hinweiszeilen und Woche neu starten im Querformat nur in der großen Ansicht. Gemessen auf 1180 × 820, 1366 × 1024, 820 × 1180 und 390 × 844, leer und mit je 20 Einträgen. Service Worker v24. |
 | 2.11 | 18.11.2026 | Kachel Notizen links unter der Uhr: gemeinsamer Zettel, Chip für Rik, Melina oder Beide, Löschen. Gespeichert als Einträge in tasks mit note: true, damit der Sync sie ohne Serveränderung abgleicht. Diese Woche und Heute zu tun zeigen keine Notizen. Service Worker v23. |
 | 2.10 | 18.11.2026 | Diese Woche in die Mitte unter den Kalender, Einkauf rechts über die ganze Höhe. Bus ohne Vergrößern. Kalender aufgeklappt als Monatsansicht: Monat wechseln, Tag wählen, Heute-Knopf, Termine des Tages darunter. Service Worker v22. |
 | 2.9 | 18.11.2026 | Versionsnummer in den Einstellungen sichtbar. Jede Änderung bekommt jetzt eine Nummer und einen Git-Tag (vX.Y), alte Stände lassen sich damit anspringen. Frühere Commits sind nachträglich getaggt (v2.0 bis v2.8, v2.6.1 für den Fix). Service Worker v21. |

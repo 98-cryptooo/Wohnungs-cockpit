@@ -1,7 +1,7 @@
 // Einstieg: verdrahtet Zustand, Anzeige, Uhr, Skalierung, Wake Lock und Service Worker.
 import './js/household.js'; // zuerst: entfernt #join aus der Adresse, bevor irgendetwas anderes laeuft
 import { subscribe, ui, DEMO } from './js/state.js';
-import { keepFocus, renderClock, renderCalTop, renderWeather, renderShop, renderTasks, renderBus, renderLeaveButton, renderOverlay, closeOverlay, initTiles, initExpand } from './js/render.js';
+import { keepFocus, renderClock, renderCalTop, renderWeather, renderShop, renderTasks, renderBus, renderLeaveButton, renderOverlay, closeOverlay, initTiles, initExpand, isFocusOpen, closeFocus } from './js/render.js';
 import { renderCook, initCook, updateTimerView, isCookOpen, closeCook } from './js/cook.js';
 import { isNight, renderNight, peek } from './js/night.js';
 import { initConfirm, isConfirmOpen } from './js/confirm.js';
@@ -17,6 +17,7 @@ function applyMode(now) {
   $('night').hidden = !night;
   $('day').hidden = night;
   if (night) {
+    closeFocus(true);
     $('overlay').hidden = true;
     $('cook').hidden = true;
     renderNight(now);
@@ -24,8 +25,10 @@ function applyMode(now) {
   }
   renderOverlay(now);
   renderCook();
-  // Hintergrund nicht bedienbar, solange ein Dialog offen ist
-  $('day').inert = !!ui.open || isCookOpen() || !$('setup').hidden || !$('settings').hidden;
+  // Hintergrund nicht bedienbar, solange ein Dialog offen ist (die Fokusansicht zaehlt fuer das Raster mit)
+  const dialog = !!ui.open || isCookOpen() || !$('setup').hidden || !$('settings').hidden;
+  $('day').inert = dialog || isFocusOpen();
+  $('focus').inert = dialog;
 }
 
 function renderEverything(now) {
@@ -81,7 +84,9 @@ document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || isConfirmOpen()) return;
   if (ui.open) closeOverlay();
   else if (isCookOpen()) closeCook();
+  else if (isFocusOpen() && $('settings').hidden && $('setup').hidden) closeFocus();
 });
+document.addEventListener('cockpit:focus', () => applyMode(new Date()));
 
 settings.subscribe(() => { // Wetterort, Haltestelle oder Fussweg geaendert: sofort neu zeichnen
   const now = new Date();

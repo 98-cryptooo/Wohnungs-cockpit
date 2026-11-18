@@ -60,7 +60,10 @@ export function renderCalTop(now) {
   const open = openTile === 'tile-cal';
   $('cal-top').hidden = open;
   $('btn-cal-all').hidden = open;
+  const n = cal[0];
+  setPreview('pv-cal', n ? 'Nächster: ' + n.day + ' · ' + n.title + (n.when ? ' · ' + n.when : '') : 'Keine Termine in Sicht');
   renderCalMonth(now);
+  scheduleFit();
 }
 
 // ---- Wetter ------------------------------------------------------------------------------------
@@ -212,6 +215,12 @@ export function renderShop() {
   $('shop-list').replaceChildren(...groups);
   $('shop-title').textContent = 'Einkauf · ' + data.shop.filter((x) => !x.done).length + ' offen';
   $('btn-saved').textContent = 'Sammlung · ' + data.recipes.filter((r) => r.status === 'saved').length;
+  const openItems = items.filter((i) => !i.x.done);
+  const perStore = STORES.map(([k, name]) => [name, openItems.filter((i) => i.store === k).length]).filter(([, c]) => c > 0);
+  setPreview('pv-shop', openItems.length
+    ? openItems.length + ' offen · ' + perStore.map(([name, c]) => (name === 'Lebensmittelmarkt' ? 'Lebensmittel' : name) + ' ' + c).join(' · ')
+    : (items.length ? 'Alles erledigt' : 'Liste leer'));
+  scheduleFit();
 }
 
 // ---- Aufgaben -------------------------------------------------------------------
@@ -248,6 +257,13 @@ export function renderTasks() {
   fillTasks(week.filter((x) => !x.done), { list: 'task-list', empty: 'task-empty', title: 'tasks-title', label: 'Diese Woche', hideDone: true, all: week });
   fillTasks(data.tasks.filter((x) => x.today && !x.note), { list: 'hd-list', empty: 'hd-empty', title: 'hd-title', label: 'Heute zu tun' });
   renderNotes();
+  const weekOpen = week.filter((x) => !x.done);
+  const perWho = WHO.map((w) => [w, weekOpen.filter((x) => (x.who || 'Beide') === w).length]).filter(([, c]) => c > 0);
+  setPreview('pv-tasks', weekOpen.length ? weekOpen.length + ' offen · ' + perWho.map(([w, c]) => w + ' ' + c).join(' · ') : (week.length ? 'Alles erledigt' : 'Keine Aufgaben'));
+  const today = data.tasks.filter((x) => x.today && !x.note);
+  const todayOpen = today.filter((x) => !x.done);
+  setPreview('pv-today', todayOpen.length ? todayOpen.length + ' offen · ' + todayOpen[0].text : (today.length ? 'Alles erledigt' : 'Nichts für heute'));
+  scheduleFit();
 }
 
 // Notizen: Eintraege in tasks mit note: true. Chip wechselt, an wen die Notiz geht. Synchronisiert wie Aufgaben.
@@ -265,6 +281,8 @@ export function renderNotes() {
   });
   $('note-list').replaceChildren(...rows);
   $('note-empty').hidden = rows.length > 0;
+  const notes = data.tasks.filter((x) => x.note);
+  setPreview('pv-notes', notes.length ? (notes.length === 1 ? '1 Notiz' : notes.length + ' Notizen') + ' · ' + notes[notes.length - 1].text : 'Keine Notizen');
 }
 
 export function initNoteForm() {
@@ -343,6 +361,8 @@ export function renderBus(now) {
       button('btn-gold-s', 'Einstellungen öffnen', () => document.dispatchEvent(new CustomEvent('cockpit:settings')), 'Einstellungen öffnen, Haltestelle wählen', 'bus-config'));
     $('bus-list').replaceChildren(box);
     $('bus-note').hidden = true;
+    setPreview('pv-bus', 'Haltestelle wählen');
+    scheduleFit();
     return;
   }
   const st = getTransitState();
@@ -363,6 +383,9 @@ export function renderBus(now) {
   const note = !DEMO && rows.length && st.failures > 0 && st.stamp ? standText(st.stamp) : '';
   $('bus-note').hidden = !note;
   $('bus-note').textContent = note;
+  const d0 = deps[0];
+  setPreview('pv-bus', d0 ? d0.line + ' · ' + (d0.left === 0 ? 'Jetzt los' : 'Los in ' + d0.left + ' Min') + ' · ' + d0.dir : 'Keine Abfahrten');
+  scheduleFit();
 }
 
 // ---- Overlay: Kalender oder Sammlung ------------------------------------------------
@@ -561,12 +584,30 @@ export function renderCalMonth(now = new Date()) {
   root.replaceChildren(head, grid, list);
 }
 
-// ---- Aufklappen: eine Kachel wird gross, die anderen rutschen zur Seite (verdraengen) -----------------
-// Nur Ansicht, pro Geraet gespeichert, nie synchronisiert. Die Kachel steht im Attribut data-open von #day.
+// ---- Kachel-Zustaende: normal, eingeklappt (Vorschau), gross (Fokusansicht) ---------------------------
+// Nur Ansicht, nie synchronisiert. Das Raster aendert sich nie, dadurch kann sich nichts ueberlappen:
+// - Eingeklappt (is-min, per Tipp auf den Titel, pro Geraet gespeichert): nur Kopf und Vorschau-Zeile.
+// - Kompakt (is-auto, nur Querformat): reicht der Platz in einer Spalte nicht, zeigt die Kachel mit dem
+//   wenigsten Inhalt von selbst ihre Vorschau. Wird bei jeder Aenderung neu berechnet.
+// - Gross (is-open): die Kachel wandert in die Fokusansicht ueber dem Raster, an ihrem Platz bleibt ein Platzhalter.
 const EXPANDABLE = ['tile-cal', 'tile-shop', 'tile-today', 'tile-tasks', 'tile-notes'];
-const OPEN_KEY = 'wohnungs-cockpit.open';
+const MINIMIZABLE = ['tile-notes', 'tile-bus', 'tile-today', 'tile-cal', 'tile-tasks', 'tile-shop'];
+const MIN_KEY = 'wohnungs-cockpit.min';
+const LANDSCAPE = window.matchMedia('(min-width: 1100px) and (min-height: 700px)');
 let openTile = null;
-try { const v = localStorage.getItem(OPEN_KEY); if (EXPANDABLE.includes(v)) openTile = v; } catch (e) { /* ignorieren */ }
+let placeholder = null;
+let focusOpener = null;
+let lastTouched = null;
+let minimized = new Set();
+try { const v = JSON.parse(localStorage.getItem(MIN_KEY) || '[]'); if (Array.isArray(v)) minimized = new Set(v.filter((x) => MINIMIZABLE.includes(x))); } catch (e) { /* ignorieren */ }
+try { localStorage.removeItem('wohnungs-cockpit.open'); } catch (e) { /* alter Zustand aus 2.8 bis 2.11 */ }
+
+export const isFocusOpen = () => !!openTile;
+
+function setPreview(id, text) {
+  const n = $(id);
+  if (n) n.textContent = text;
+}
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 function expandIcon(on) {
@@ -586,12 +627,19 @@ function expandIcon(on) {
   return s;
 }
 
-function applyOpenTile() {
-  $('day').dataset.open = openTile || '';
-  const calOpen = openTile === 'tile-cal';
-  $('cal-top').hidden = calOpen;
-  $('btn-cal-all').hidden = calOpen;
-  renderCalMonth(new Date());
+const tileName = (tile) => tile.getAttribute('aria-label') || 'Kachel';
+
+function applyTileState() {
+  MINIMIZABLE.forEach((id) => {
+    const tile = $(id);
+    const min = minimized.has(id) && id !== openTile;
+    tile.classList.toggle('is-min', min);
+    const b = tile.querySelector('.min-btn');
+    if (!b) return;
+    const shut = min || tile.classList.contains('is-auto');
+    b.setAttribute('aria-expanded', shut ? 'false' : 'true');
+    b.setAttribute('aria-label', tileName(tile) + (shut ? ' aufklappen' : ' einklappen'));
+  });
   EXPANDABLE.forEach((id) => {
     const on = id === openTile;
     const tile = $(id);
@@ -599,28 +647,157 @@ function applyOpenTile() {
     const b = tile.querySelector('.expand');
     if (!b) return;
     b.setAttribute('aria-expanded', on ? 'true' : 'false');
-    b.setAttribute('aria-label', on ? 'Kachel wieder verkleinern' : 'Kachel vergrößern');
+    b.setAttribute('aria-label', on ? tileName(tile) + ' wieder klein' : tileName(tile) + ' groß öffnen');
     b.replaceChildren(expandIcon(on));
   });
+  const calOpen = openTile === 'tile-cal';
+  $('cal-top').hidden = calOpen;
+  $('btn-cal-all').hidden = calOpen;
+  // Monat nur neu bauen, wenn der Kalender gerade auf- oder zugeht (sonst verliert die Monatsansicht den Fokus)
+  if (calOpen !== calWasOpen) { calWasOpen = calOpen; renderCalMonth(new Date()); }
+}
+let calWasOpen = false;
+
+// Querformat: pro Spalte pruefen, ob jede Kachel genug Platz hat. Wenn nicht, wird nacheinander die Kachel
+// mit dem wenigsten Inhalt kompakt (die zuletzt angetippte nie zuerst, dann leere, dann der Bus,
+// dessen Vorschau die naechste Abfahrt zeigt), bis alles passt.
+const LIST_SEL = '.scroll, .bus-list, .cal-top';
+const ROOM = 96; // Mindestplatz fuer die Liste (knapp zwei Zeilen)
+function listOf(tile) { return tile.querySelector(':scope > ' + LIST_SEL.split(', ').join(', :scope > ')); }
+function contentSize(tile) { const l = listOf(tile); return l ? l.scrollHeight : 0; }
+function isEmptyTile(tile) { const e = tile.querySelector(':scope > .empty'); return !!e && !e.hidden; }
+// Platz, den eine Kachel mindestens braucht: Kopf, Eingabe usw. plus bis zu zwei Zeilen ihrer Liste
+function needOf(tile) {
+  const l = listOf(tile);
+  if (!l) return tile.offsetHeight;
+  return tile.scrollHeight + (tile.offsetHeight - tile.clientHeight) - l.clientHeight + Math.min(l.scrollHeight, ROOM);
+}
+
+function fitStacks() {
+  document.querySelectorAll('.tile.is-auto').forEach((t) => t.classList.remove('is-auto'));
+  document.querySelectorAll('#day .stack > .tile').forEach((t) => { t.style.minHeight = ''; });
+  if (LANDSCAPE.matches && !$('day').hidden) {
+    document.querySelectorAll('#day > .stack').forEach((stack) => {
+      const kids = [...stack.children].filter((t) => t.offsetParent);
+      const cands = kids.filter((t) => MINIMIZABLE.includes(t.id) && !t.classList.contains('is-min'));
+      const gap = parseFloat(getComputedStyle(stack).rowGap) || 0;
+      const live = (t) => cands.includes(t) && !t.classList.contains('is-auto');
+      for (let i = 0; i <= cands.length; i++) {
+        const total = kids.reduce((sum, t) => sum + (live(t) ? needOf(t) : t.offsetHeight), 0) + gap * (kids.length - 1);
+        if (total <= stack.clientHeight + 1) break;
+        const rest = cands.filter(live);
+        if (!rest.length) break;
+        rest.sort((a, b) => ((a.id === lastTouched) - (b.id === lastTouched)) || (isEmptyTile(b) - isEmptyTile(a)) || ((b.id === 'tile-bus') - (a.id === 'tile-bus')) || (contentSize(a) - contentSize(b)));
+        rest[0].classList.add('is-auto');
+      }
+      // Was offen bleibt, schrumpft nie unter seinen Mindestplatz. Den Rest bekommt die Kachel mit der laengsten Liste.
+      const needs = cands.filter(live).map((t) => [t, needOf(t)]);
+      needs.forEach(([t, n]) => { t.style.minHeight = n + 'px'; });
+    });
+  }
+  applyTileState();
+}
+
+let fitQueued = false;
+export function scheduleFit() {
+  if (fitQueued) return;
+  fitQueued = true;
+  // Nach dem laufenden Neuzeichnen, aber vor dem Malen (Mikrotask): kein Flackern, auch im Hintergrund zuverlaessig
+  queueMicrotask(() => { fitQueued = false; fitStacks(); });
+}
+
+function toggleMin(id) {
+  lastTouched = id;
+  const tile = $(id);
+  // Kompakte Kachel antippen: sie bekommt Vorrang und klappt auf, eine andere wird kompakt. Passt sie gar nicht, gross oeffnen.
+  if (tile.classList.contains('is-auto') && !minimized.has(id)) {
+    fitStacks();
+    if ($(id).classList.contains('is-auto')) openFocus(id);
+    return;
+  }
+  if (minimized.has(id)) minimized.delete(id); else minimized.add(id);
+  try { localStorage.setItem(MIN_KEY, JSON.stringify([...minimized])); } catch (e) { /* ignorieren */ }
+  fitStacks();
+}
+
+export function openFocus(id) {
+  if (!EXPANDABLE.includes(id)) { if (minimized.has(id)) toggleMin(id); return; }
+  if (openTile === id) return;
+  if (openTile) closeFocus(true);
+  const tile = $(id);
+  focusOpener = document.activeElement;
+  // Platzhalter mit gleicher Hoehe und Reihenfolge: das Raster dahinter bleibt genau so stehen
+  placeholder = el('div', 'tile tile-ph');
+  placeholder.setAttribute('aria-hidden', 'true');
+  placeholder.style.order = getComputedStyle(tile).order;
+  placeholder.style.flex = '0 0 ' + tile.getBoundingClientRect().height + 'px';
+  tile.style.minHeight = '';
+  placeholder.append(el('span', 'h', tileName(tile)), el('span', 'hint', 'Groß geöffnet'));
+  tile.replaceWith(placeholder);
+  $('focus-card').replaceChildren(tile);
+  $('focus-card').setAttribute('aria-label', tileName(tile));
+  openTile = id;
+  $('focus').hidden = false;
+  $('day').inert = true;
+  tile.classList.remove('is-auto');
+  applyTileState();
+  scheduleFit();
+  document.dispatchEvent(new CustomEvent('cockpit:focus'));
+  const b = tile.querySelector('.expand');
+  if (b) b.focus({ preventScroll: true });
+}
+
+export function closeFocus(silent) {
+  if (!openTile) return;
+  const tile = $(openTile);
+  if (placeholder && placeholder.isConnected) placeholder.replaceWith(tile);
+  placeholder = null;
+  openTile = null;
+  $('focus').hidden = true;
+  $('day').inert = false;
+  if (!silent) document.dispatchEvent(new CustomEvent('cockpit:focus'));
+  fitStacks();
+  if (!silent) {
+    const back = focusOpener && focusOpener.isConnected ? focusOpener : tile.querySelector('.expand');
+    if (back) back.focus({ preventScroll: true });
+  }
+  focusOpener = null;
 }
 
 export function initExpand() {
   EXPANDABLE.forEach((id) => {
     const tile = $(id);
-    const head = tile.querySelector(':scope > .tile-head, :scope > .tile-head-base');
+    const head = tile.querySelector(':scope > .tile-head');
     if (!head) return;
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'expand';
     b.dataset.fk = 'expand-' + id;
-    b.addEventListener('click', () => {
-      openTile = openTile === id ? null : id;
-      try { if (openTile) localStorage.setItem(OPEN_KEY, openTile); else localStorage.removeItem(OPEN_KEY); } catch (e) { /* ignorieren */ }
-      applyOpenTile();
-    });
+    b.addEventListener('click', () => { lastTouched = id; if (openTile === id) closeFocus(); else openFocus(id); });
     head.append(b);
   });
-  applyOpenTile();
+  MINIMIZABLE.forEach((id) => {
+    const tile = $(id);
+    const b = tile.querySelector('.min-btn');
+    if (b) { b.dataset.fk = 'min-' + id; b.addEventListener('click', () => { if (openTile !== id) toggleMin(id); }); }
+    const pv = tile.querySelector('.preview');
+    if (pv) {
+      pv.dataset.fk = 'pv-' + id;
+      pv.addEventListener('click', () => {
+        if (minimized.has(id) || tile.classList.contains('is-auto')) {
+          toggleMin(id);
+          // Die Vorschau verschwindet, der Fokus geht auf den Titel-Knopf statt ins Leere
+          if (!openTile && b) b.focus({ preventScroll: true });
+        } else openFocus(id);
+      });
+    }
+  });
+  $('focus-scrim').addEventListener('click', () => closeFocus());
+  LANDSCAPE.addEventListener('change', scheduleFit);
+  window.addEventListener('resize', scheduleFit);
+  if (window.ResizeObserver) new ResizeObserver(scheduleFit).observe($('day'));
+  applyTileState();
+  scheduleFit();
 }
 
 export function initTiles() {

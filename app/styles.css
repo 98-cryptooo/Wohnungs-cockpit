@@ -89,20 +89,38 @@ h2, h3, p { margin: 0; }
   gap: 10px;
   min-height: 0;
   min-width: 0;
+  overflow: hidden; /* Inhalt bleibt immer in seiner Kachel */
 }
+/* Kopf, Hinweis und Eingabe behalten ihre Hoehe, nur die Liste gibt nach und scrollt */
+.tile > .tile-head, .tile > .task-form, .tile > .hint, .tile > .empty, .tile > .preview, .clock-head, .weather { flex-shrink: 0; }
+.tile > .scroll, .tile > .bus-list, .tile > .cal-top { flex: 1 1 auto; min-height: 0; }
+.tile > .bus-list, .tile > .cal-top { overflow: hidden; }
 .tile-clock { padding: 20px; justify-content: space-between; gap: 0; }
 .tile-shop { gap: 6px; }
-.tile-shop .shop-list, .tile-tasks .task-list { max-height: 60vh; }
+.tile-tasks, .tile-today { gap: 8px; }
+.tile-shop .shop-list, .tile-tasks .task-list, .tile-today .task-list, .tile-notes .note-list { max-height: 60vh; }
 
-/* Tablet hochkant: zwei Spalten */
+/* Spalten-Stapel: nur im Querformat echte Spalten. Auf Telefon und Tablet hochkant fliessen die Kacheln im Raster. */
+.stack { display: contents; }
+/* Telefon und Tablet: Reihenfolge der Kacheln */
+.tile-clock { order: 1; }
+.tile-notes { order: 2; }
+.tile-today { order: 3; }
+.tile-cal { order: 4; }
+.tile-shop { order: 5; }
+.tile-tasks { order: 6; }
+.tile-bus { order: 7; }
+
+/* Tablet hochkant: zwei Spalten ohne Loecher. Links Uhr, Notizen, Heute, Bus. Rechts Kalender, Woche, Einkauf. */
 @media (min-width: 700px) {
-  .day { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 20px; gap: 16px; }
-  .tile-clock { grid-column: 1 / -1; }
-  .day { align-items: start; }
-  .tile-shop, .tile-tasks, .tile-today, .tile-cal, .tile-bus { grid-column: auto; }
+  .day { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 1fr; padding: 20px; gap: 16px; align-items: start; }
+  .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .stack-a { grid-column: 1; grid-row: 1 / span 2; }
+  .stack-b { grid-column: 2; grid-row: 1; }
+  .stack-c { grid-column: 2; grid-row: 2; }
 }
 
-/* Querformat (iPad quer, Desktop): drei Spalten, der Bildschirm wird gefuellt */
+/* Querformat (iPad quer, Desktop): drei Spalten, der Bildschirm wird gefuellt, nichts scrollt ausser den Listen */
 @media (min-width: 1100px) and (min-height: 700px) {
   #viewport { overflow: hidden; }
   #stage { height: 100%; }
@@ -110,25 +128,76 @@ h2, h3, p { margin: 0; }
     height: 100%;
     padding: 20px 24px;
     grid-template-columns: 1.15fr 1fr 1fr;
-    grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 14px 16px;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 16px;
+    align-items: stretch;
   }
+  .stack { display: flex; flex-direction: column; gap: 14px; min-height: 0; min-width: 0; grid-row: auto; grid-column: auto; align-self: stretch; }
   .tile { padding: 18px 20px; }
-  /* Links: Uhr, Notizen, Bus, Heute zu tun */
-  .tile-clock { grid-column: 1; grid-row: 1; }
-  .tile-notes { grid-column: 1; grid-row: 2; }
-  .tile-bus { grid-column: 1; grid-row: 3; }
-  .tile-today { grid-column: 1; grid-row: 4; gap: 8px; }
-  /* Mitte: Kalender oben, Diese Woche darunter */
-  .tile-cal { grid-column: 2; grid-row: 1 / span 2; }
-  .tile-tasks { grid-column: 2; grid-row: 3 / span 2; gap: 8px; }
-  /* Rechts: Einkauf ueber die ganze Hoehe */
-  .tile-shop { grid-column: 3; grid-row: 1 / span 4; }
-  .tile-shop .shop-list, .tile-tasks .task-list { max-height: none; }
+  /* Jede Kachel startet bei ihrer Inhaltshoehe, freier Platz wird verteilt, bei Enge gibt die Liste nach */
+  .stack > .tile { flex: 1 1 auto; }
+  .stack > .tile-clock { flex: 0 0 auto; }
+  .stack > .tile-bus { flex: 0 1 auto; }
+  /* Leere Kacheln nehmen sich wenig vom freien Platz */
+  .stack > .tile:has(> .empty:not([hidden])) { flex-grow: 0.25; }
+  .stack > .tile.is-min, .stack > .tile.is-auto { flex: 0 0 auto; }
+  .tile-shop .shop-list, .tile-tasks .task-list, .tile-today .task-list, .tile-notes .note-list { max-height: none; }
+  /* Hinweise nur in der grossen Ansicht, im Raster kostet jede Zeile Platz */
+  .stack .tile > .hint:not(.cal-note):not(.bus-note) { display: none; }
+  /* Selten gebraucht: Woche neu starten nur in der grossen Ansicht, damit der Titel Platz hat */
+  .stack #btn-week-reset { display: none; }
 }
-.tile-bus { min-height: 0; }
 .tile-head { display: flex; justify-content: space-between; align-items: center; min-height: 48px; gap: 12px; }
 .tile-head-base { align-items: baseline; min-height: 0; }
+
+/* Titel als Knopf: einklappen und aufklappen */
+.tile-head .h { min-width: 0; flex: 0 1 auto; }
+.min-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  max-width: 100%;
+  margin: -12px 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+}
+.min-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.min-btn .chev::before { content: '▾'; }
+.tile.is-min .min-btn .chev::before, .tile.is-auto .min-btn .chev::before { content: '▸'; }
+.tile.is-open .min-btn .chev { display: none; }
+.tile.is-open .min-btn { pointer-events: none; }
+
+/* Vorschau-Zeile: nur sichtbar, wenn die Kachel eingeklappt oder kompakt ist */
+.preview {
+  display: none;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 18px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tile.is-min, .tile.is-auto { gap: 4px; }
+.tile.is-min > .preview, .tile.is-auto > .preview { display: block; }
+.tile.is-min > :not(.tile-head):not(.preview),
+.tile.is-auto > :not(.tile-head):not(.preview) { display: none !important; }
+.tile.is-min .tile-head .btn-link, .tile.is-auto .tile-head .btn-link,
+.tile.is-min .tile-head .sync-btn, .tile.is-auto .tile-head .sync-btn,
+.tile.is-min #walk-label, .tile.is-auto #walk-label { display: none; }
+.tile-ph { justify-content: center; align-items: flex-start; gap: 4px; border-style: dashed; background: none; }
 
 /* Uhr */
 .clock-head { display: flex; flex-direction: column; gap: 6px; }
@@ -705,26 +774,37 @@ h2, h3, p { margin: 0; }
   justify-content: center;
 }
 .expand:hover { color: var(--text); }
-.tile.is-open { border-color: #3A3E44; }
-
-/* Querformat: die offene Kachel bekommt mehr Breite, die anderen rutschen zur Seite */
-@media (min-width: 1100px) and (min-height: 700px) {
-  .day { transition: grid-template-columns 0.25s ease; }
-  .day[data-open="tile-cal"], .day[data-open="tile-tasks"] { grid-template-columns: 1fr 1.9fr 1fr; }
-  .day[data-open="tile-shop"] { grid-template-columns: 1fr 1fr 1.9fr; }
-  .day[data-open="tile-today"], .day[data-open="tile-notes"] { grid-template-columns: 1.9fr 1fr 1fr; }
+/* Fokusansicht: die geoeffnete Kachel gross ueber dem Raster */
+.focus { position: fixed; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center;
+  padding: calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left)); }
+.focus-card { position: relative; width: min(1180px, 100%); height: 100%; display: flex; min-height: 0; }
+.focus-card > .tile { flex: 1; min-height: 0; padding: 24px 28px; gap: 12px; border-color: #3A3E44; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55); }
+.focus-card .shop-list, .focus-card .task-list, .focus-card .note-list { max-height: none; }
+@media (max-width: 699px) {
+  .focus { padding: calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)); }
+  .focus-card > .tile { padding: 18px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .day { transition: none !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .focus:not([hidden]) .focus-card { animation: focus-in 0.18s ease-out; }
+  @keyframes focus-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: none; } }
 }
-
-/* Tablet hochkant: offene Kachel ueber die ganze Breite */
-@media (min-width: 700px) and (max-width: 1099px) {
-  .tile.is-open { grid-column: 1 / -1; }
+/* Grosse Ansicht: Listen in mehreren Spalten, wenn Platz ist */
+@media (min-width: 900px) {
+  .focus-card .task-list, .focus-card .note-list {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); column-gap: 32px; align-content: start;
+  }
+  .focus-card .shop-list {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 0 32px; align-content: start; align-items: start;
+  }
+  .focus-card .tile-cal .cal-month {
+    display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 12px 32px;
+  }
+  .focus-card .cal-mhead { grid-column: 1 / -1; }
+  .focus-card .cal-grid { align-content: start; }
+  .focus-card .cal-day { min-height: 64px; }
+  .focus-card .cal-dayev { border-top: none; padding-top: 0; }
 }
-
-/* Telefon und Tablet: offene Liste darf hoeher werden */
-.tile.is-open .shop-list, .tile.is-open .task-list { max-height: 80vh; }
+.focus-card .cal-month { overflow-y: auto; }
 
 /* Kalender-Monat (aufgeklappt) */
 .cal-month { display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1; }

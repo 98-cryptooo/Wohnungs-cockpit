@@ -3,7 +3,7 @@ const $ = (id) => document.getElementById(id);
 let resolver = null;
 let previous = null;
 let inertBefore = {};
-const BEHIND = ['day', 'overlay', 'cook', 'settings', 'setup'];
+const BEHIND = ['day', 'focus', 'overlay', 'cook', 'settings', 'setup'];
 
 export function isConfirmOpen() { return resolver !== null; }
 
