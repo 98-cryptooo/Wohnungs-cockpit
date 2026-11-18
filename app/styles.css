@@ -375,6 +375,14 @@ h2, h3, p { margin: 0; }
   font-size: 16px;
 }
 .task-form input::placeholder { color: #8A8D92; }
+/* Einkauf: Eingabe in eigener Zeile, darunter Laden und Knopf. Sonst ist das Feld auf dem iPad (schmale Spalte) kaum sichtbar. */
+.shop-form { flex-wrap: wrap; }
+.shop-form > label.grow { flex: 1 1 100%; }
+.shop-form .shop-group { flex: 1 1 0; min-width: 0; }
+.shop-form .btn-add { flex: 1 1 0; }
+/* Aufgaben: Text darf umbrechen statt abgeschnitten zu werden (bis 60 Zeichen). */
+.task .check .label { white-space: normal; overflow-wrap: anywhere; }
+
 .btn-add {
   font-size: 15px;
   font-weight: 600;
@@ -559,7 +567,7 @@ h2, h3, p { margin: 0; }
 .night-shift { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .night-time {
   font-family: var(--font-display);
-  font-size: 200px;
+  font-size: clamp(72px, 34vw, 200px);
   font-weight: 500;
   line-height: 1;
   letter-spacing: -6px;
@@ -614,7 +622,6 @@ h2, h3, p { margin: 0; }
   font-size: 18px;
 }
 .setup-error { font-size: 20px; color: #F0A0A0; line-height: 1.4; }
-.settings-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .settings-btns .btn-next { flex: none; }
 
 .cal-note { margin-top: auto; }
