@@ -35,38 +35,6 @@
         <div id="date-label" class="date-label"></div>
       </div>
 
-      <div class="today">
-        <div class="today-head">
-          <h2 class="h">Heute</h2>
-          <div class="head-right">
-          <span class="pill" title="Licht, Heizung und Musik kommen, sobald Geräte da sind">
-            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9A9DA3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg>
-            Smart Home bald
-          </span>
-          <button id="btn-sync" type="button" class="sync-btn" aria-label="Verbindung">
-            <span id="sync-dot" class="sync-dot" aria-hidden="true"></span>
-            <span id="sync-label"></span>
-          </button>
-          </div>
-        </div>
-        <div class="next">
-          <span class="bar" aria-hidden="true"></span>
-          <div class="col">
-            <span id="next-title" class="next-title"></span>
-            <span id="next-meta" class="next-meta"></span>
-          </div>
-        </div>
-        <div class="row">
-          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"></path><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
-          <span id="task-todo"></span>
-        </div>
-        <div id="today-cook" class="row" hidden>
-          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13h12M6 13a6 6 0 0 0 12 0M12 4v3M8 5l1 2M16 5l-1 2"></path></svg>
-          <span id="today-name" class="grow"></span>
-          <button id="btn-today-cook" type="button" class="btn-gold btn-sm">Kochmodus</button>
-        </div>
-      </div>
-
       <div class="weather">
         <div id="weather-empty" class="forecast">Wetter nicht verfügbar</div>
         <button id="weather-config" type="button" class="btn-gold-s weather-config" hidden>Einstellungen öffnen</button>
@@ -119,6 +87,10 @@
     <section id="tile-today" class="tile tile-tasks tile-today" aria-label="Heute zu tun">
       <div class="tile-head">
         <h2 id="hd-title" class="h">Heute zu tun</h2>
+        <button id="btn-sync" type="button" class="sync-btn" aria-label="Verbindung">
+          <span id="sync-dot" class="sync-dot" aria-hidden="true"></span>
+          <span id="sync-label"></span>
+        </button>
       </div>
       <div id="hd-list" class="scroll task-list"></div>
       <div id="hd-empty" class="empty" hidden>Noch nichts für heute. Unten eine hinzufügen.</div>

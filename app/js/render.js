@@ -1,7 +1,7 @@
 // Darstellung der Kacheln und Overlays. Alles per DOM-Methoden und textContent.
 import { data, ui, write, setUi, newId, calendarRaw, getDepartures, DEMO_STOP_NAME, DEMO_WALK_MINUTES, DEMO } from './state.js';
 import { el, button, icon, pad } from './util.js';
-import { cookRecipe, dropRecipe, rebuy, openTodayCook } from './cook.js';
+import { cookRecipe, dropRecipe, rebuy } from './cook.js';
 import { askConfirm } from './confirm.js';
 import { recipeForItem } from './core.js';
 import { safeUrl } from './util.js';
@@ -40,17 +40,6 @@ function chip(e) { return el('span', 'chip' + (e.soon ? ' soon' : ''), e.day); }
 export function renderClock(now) {
   $('clock').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
   $('date-label').textContent = DAYS[now.getDay()] + ', ' + now.getDate() + '. ' + MONTHS[now.getMonth()];
-}
-
-export function renderToday(now) {
-  const { todayEv, next } = computeCal(now);
-  $('next-title').textContent = todayEv.length ? todayEv[0].title : 'Heute nichts mehr';
-  $('next-meta').textContent = todayEv.length ? todayEv[0].when : (next ? 'Als Nächstes: ' + next.title + ', ' + next.when : '');
-  const open = data.tasks.filter((x) => !x.done).length;
-  $('task-todo').textContent = open ? 'Diese Woche: ' + open + ' Aufgaben offen' : 'Diese Woche: alles erledigt';
-  const todayRec = data.recipes.find((r) => r.status === 'today');
-  $('today-cook').hidden = !todayRec;
-  $('today-name').textContent = todayRec ? 'Heute kochen: ' + todayRec.name : '';
 }
 
 export function renderCalTop(now) {
@@ -241,11 +230,18 @@ function fillTasks(items, ids) {
   });
   $(ids.list).replaceChildren(...rows);
   $(ids.empty).hidden = rows.length > 0;
-  $(ids.title).textContent = ids.label + ' · ' + items.filter((x) => x.done).length + '/' + items.length;
+  if (ids.hideDone) {
+    // Erledigte Aufgaben stehen nicht in der Liste. Der Zaehler zeigt nur, was noch offen ist.
+    $(ids.title).textContent = ids.label + ' · ' + items.length + ' offen';
+    $(ids.empty).textContent = ids.all.length ? 'Alles erledigt.' : 'Noch keine Aufgaben. Unten eine hinzufügen.';
+  } else {
+    $(ids.title).textContent = ids.label + ' · ' + items.filter((x) => x.done).length + '/' + items.length;
+  }
 }
 
 export function renderTasks() {
-  fillTasks(data.tasks.filter((x) => !x.today), { list: 'task-list', empty: 'task-empty', title: 'tasks-title', label: 'Diese Woche' });
+  const week = data.tasks.filter((x) => !x.today);
+  fillTasks(week.filter((x) => !x.done), { list: 'task-list', empty: 'task-empty', title: 'tasks-title', label: 'Diese Woche', hideDone: true, all: week });
   fillTasks(data.tasks.filter((x) => x.today), { list: 'hd-list', empty: 'hd-empty', title: 'hd-title', label: 'Heute zu tun' });
 }
 
@@ -424,6 +420,15 @@ function resetLeave() {
   write('cats', (l) => { l.forEach((z) => { if (z.id.startsWith('leave-')) z.done = false; }); });
 }
 
+// Knopf "Wohnung verlassen" wird gruen, wenn alle Punkte der Checkliste erledigt sind.
+export function renderLeaveButton() {
+  const checked = leaveChecked();
+  const all = LEAVE_ITEMS.every(([id]) => checked.has(id));
+  const b = $('btn-leave');
+  b.classList.toggle('done', all);
+  b.setAttribute('aria-label', all ? 'Wohnung verlassen, alles erledigt' : 'Wohnung verlassen');
+}
+
 function renderLeave(body) {
   $('ov-title').textContent = 'Wohnung verlassen';
   const checked = leaveChecked();
@@ -446,6 +451,5 @@ export function initTiles() {
   $('btn-saved').addEventListener('click', () => openOverlay('saved'));
   $('ov-close').addEventListener('click', closeOverlay);
   $('ov-scrim').addEventListener('click', closeOverlay);
-  $('btn-today-cook').addEventListener('click', openTodayCook);
   initTaskForm();
 }

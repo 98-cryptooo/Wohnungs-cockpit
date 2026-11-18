@@ -1,7 +1,7 @@
 // Einstieg: verdrahtet Zustand, Anzeige, Uhr, Skalierung, Wake Lock und Service Worker.
 import './js/household.js'; // zuerst: entfernt #join aus der Adresse, bevor irgendetwas anderes laeuft
 import { subscribe, ui, DEMO } from './js/state.js';
-import { keepFocus, renderClock, renderToday, renderCalTop, renderWeather, renderShop, renderTasks, renderBus, renderOverlay, closeOverlay, initTiles } from './js/render.js';
+import { keepFocus, renderClock, renderCalTop, renderWeather, renderShop, renderTasks, renderBus, renderLeaveButton, renderOverlay, closeOverlay, initTiles } from './js/render.js';
 import { renderCook, initCook, updateTimerView, isCookOpen, closeCook } from './js/cook.js';
 import { isNight, renderNight, peek } from './js/night.js';
 import { initConfirm, isConfirmOpen } from './js/confirm.js';
@@ -30,11 +30,11 @@ function applyMode(now) {
 
 function renderEverything(now) {
   renderClock(now);
-  renderToday(now);
   renderCalTop(now);
   renderWeather(now);
   renderShop();
   renderTasks();
+  renderLeaveButton();
   renderBus(now);
   applyMode(now);
 }
@@ -54,7 +54,6 @@ function onTick(force) {
   lastNight = night;
   keepFocus(() => {
     renderClock(now);
-    renderToday(now);
     renderCalTop(now);
     renderWeather(now);
     renderBus(now);
@@ -66,13 +65,13 @@ subscribe((topic) => {
   const now = new Date();
   keepFocus(() => {
     switch (topic) {
-      case 'shop': renderShop(); renderToday(now); break;
-      case 'recipes': renderShop(); renderToday(now); applyMode(now); break;
-      case 'tasks': renderTasks(); renderToday(now); break;
+      case 'shop': renderShop(); break;
+      case 'recipes': renderShop(); applyMode(now); break;
+      case 'tasks': renderTasks(); break;
       case 'weather': renderWeather(now); applyMode(now); break;
       case 'transit': renderBus(now); break;
-      case 'cal': renderCalTop(now); renderToday(now); applyMode(now); break;
-      case 'ui': renderToday(now); applyMode(now); break;
+      case 'cal': renderCalTop(now); applyMode(now); break;
+      case 'ui': applyMode(now); break;
       default: renderEverything(now);
     }
   });
