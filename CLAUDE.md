@@ -9,6 +9,7 @@ Persönliche Angaben (Namen, Ort, Konten, Absprachen) stehen in `CLAUDE.local.md
 - Der Nutzer kennt sich mit Backend und Datenbanken wenig aus: jeden Schritt, den er selbst machen muss, genau und einfach erklären.
 - Vor größeren Features kurz nachfragen (grill-me), Spec mit Abnahmetests schreiben, Ja abholen, bauen, dann gegen die Spec prüfen.
 - Nach jeder Änderung eine Zeile in `docs/HANDOFF.md` unter Revisionen ergänzen (neueste oben).
+- Jede Änderung bekommt eine Versionsnummer (x.y, nächste Nummer). Dieselbe Nummer steht in `docs/HANDOFF.md`, im Feld `#app-version` in `app/index.html` und als Git-Tag `vX.Y` auf dem Commit. Die Service-Worker-Version `VERSION` in `app/sw.js` wird ebenfalls hochgezählt.
 - Vor dem Merge: Code-Review-Agent und Frontend-/Design-Agent drüberschauen lassen.
 - Commit und Push nur auf einen Branch, Merge macht der Nutzer über einen Pull Request.
 - Das Repo ist öffentlich. Nie Haushaltscode, Schlüssel, Kalender-Links, Orte, Namen oder echte Termine committen. Der Pre-Commit-Schutz in `.githooks/` fängt Geheimnisse ab (`git config core.hooksPath .githooks`).

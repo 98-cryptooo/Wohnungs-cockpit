@@ -28,6 +28,7 @@ Stand: 17.11.2026. Die ausführliche Projektdoku mit allen Revisionen und Entsch
 ## Revisionen
 | Version | Datum | Änderung |
 | --- | --- | --- |
+| 2.9 | 18.11.2026 | Versionsnummer in den Einstellungen sichtbar. Jede Änderung bekommt jetzt eine Nummer und einen Git-Tag (vX.Y), alte Stände lassen sich damit anspringen. Frühere Commits sind nachträglich getaggt (v2.0 bis v2.8, v2.6.1 für den Fix). Service Worker v21. |
 | 2.8 | 18.11.2026 | Aufklappen: jede Kachel hat einen Knopf zum Vergrößern. Die offene Kachel wird größer, die anderen rutschen zur Seite (Querformat), im Hochformat über die ganze Breite. Auswahl pro Gerät gespeichert. Service Worker v20. |
 | 2.7 | 18.11.2026 | Bus-Kachel links unter der Uhr, Abfahrten wieder untereinander. Kalender im Querformat über die ganze Mitte. Heute zu tun unten links. Service Worker v19. |
 | 2.6 | 18.11.2026 | Layout repariert: Uhr-Zeile und Schriftgröße im Querformat griffen nicht (Basisregeln standen danach), Heute zu tun überschrieb die Platzierung der Woche-Kachel. Button Wohnung verlassen kleiner. Tablet hochkant: Kacheln behalten eigene Höhe, Einkaufsliste maximal 60 % der Höhe. Heute zu tun steht im Telefon-Layout vor dem Kalender. Service Worker v17. |
