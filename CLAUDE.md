@@ -1,6 +1,6 @@
 # Wohnungs-Cockpit
 
-Haushalts-Cockpit für zwei Personen auf einem iPad Air 13 Zoll (2024), quer, 1366 × 1024 Punkte, mal an der Wand, mal in der Hand. Dunkel und edel. Alles auf einer Seite, kein Scrollen der Seite.
+Haushalts-Cockpit für zwei Personen, Hauptgerät iPad Air quer (drei Spalten, ohne Scrollen), auf dem Telefon eine Spalte mit Scrollen. Dunkel und edel. Responsive über Media-Queries in `app/styles.css`, keine feste Skalierung mehr.
 
 Persönliche Angaben (Namen, Ort, Konten, Absprachen) stehen in `CLAUDE.local.md`. Diese Datei ist nicht im Repo.
 
@@ -33,4 +33,4 @@ Wetterort, Haltestelle, Linien, Richtungen und Fußweg stehen nie im Repo, sonde
 - Gruppierung im Cockpit: Allgemein und Rezepte zu Lebensmittelmarkt (Rezepte als Untergruppe), Drogerie zu Drogerie, alles andere zu Andere.
 
 ## Kacheln
-Uhr mit Heute-Bereich und Wetter, Kalender (live), Diese Woche (Aufgaben hinzufügen, löschen, Zuständigkeit), Einkauf (synchron, nach Laden und Rezept), Katzen (Füttern morgens/abends, Klo, Tierarzt), Bus (Linien und Fußweg aus den Einstellungen), Smart Home nur als Hinweis. Kochmodus mit Schritten, Timer und Portionen, Rezeptsammlung. Nachtmodus 22 bis 6 Uhr mit Pixel-Shift.
+Uhr mit Heute-Bereich und Wetter, Kalender (live), Diese Woche (Aufgaben hinzufügen, löschen, Zuständigkeit), Einkauf (synchron, Artikel hinzufügen, nach Laden und Rezept, Rezepte einklappbar), Bus (Linien und Fußweg aus den Einstellungen), Smart Home nur als Hinweis. Kochmodus mit Schritten, Timer und Portionen, Rezeptsammlung. Nachtmodus 22 bis 6 Uhr mit Pixel-Shift.

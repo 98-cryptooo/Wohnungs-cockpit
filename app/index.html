@@ -64,7 +64,6 @@
         </div>
         <div class="row">
           <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
-          <span id="cat-todo"></span>
         </div>
       </div>
 
@@ -100,6 +99,18 @@
         <button id="btn-saved" type="button" class="btn-link">Sammlung</button>
       </div>
       <div id="shop-list" class="scroll shop-list"></div>
+      <form id="shop-form" class="task-form shop-form" autocomplete="off">
+        <label class="grow">
+          <span class="sr">Neuer Einkaufsartikel</span>
+          <input id="shop-input" type="text" placeholder="Neuer Artikel, z. B. Milch" maxlength="60">
+        </label>
+        <label class="sr" for="shop-group">Laden</label>
+        <select id="shop-group" class="shop-group">
+          <option value="Allgemein">Lebensmittel</option>
+          <option value="Drogerie">Drogerie</option>
+        </select>
+        <button id="shop-add" type="submit" class="btn-add">Hinzufügen</button>
+      </form>
     </section>
 
     <!-- Diese Woche -->
@@ -118,16 +129,6 @@
         </label>
         <button id="task-add" type="submit" class="btn-add">Hinzufügen</button>
       </form>
-    </section>
-
-    <!-- Katzen -->
-    <section id="tile-cats" class="tile tile-cats" aria-label="Katzen">
-      <h2 class="h">Katzen heute</h2>
-      <div id="cat-checks" class="cat-grid"></div>
-      <div class="vet">
-        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4B37A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path></svg>
-        <span id="vet-text"></span>
-      </div>
     </section>
 
     <!-- Bus -->

@@ -1,5 +1,5 @@
 // Darstellung der Kacheln und Overlays. Alles per DOM-Methoden und textContent.
-import { data, ui, write, setUi, newId, calendarRaw, getVet, getDepartures, DEMO_STOP_NAME, DEMO_WALK_MINUTES, DEMO, catDone, catDay } from './state.js';
+import { data, ui, write, setUi, newId, calendarRaw, getDepartures, DEMO_STOP_NAME, DEMO_WALK_MINUTES, DEMO } from './state.js';
 import { el, button, icon, pad } from './util.js';
 import { cookRecipe, dropRecipe, rebuy, openTodayCook } from './cook.js';
 import { askConfirm } from './confirm.js';
@@ -51,12 +51,6 @@ export function renderToday(now) {
   const todayRec = data.recipes.find((r) => r.status === 'today');
   $('today-cook').hidden = !todayRec;
   $('today-name').textContent = todayRec ? 'Heute kochen: ' + todayRec.name : '';
-  const c = {}; data.cats.forEach((x) => { c[x.id] = catDone(x, now); });
-  const openCats = [];
-  if (!c.morgens) openCats.push('morgens füttern');
-  if (!c.abends) openCats.push('abends füttern');
-  if (!c.klo) openCats.push('Klo');
-  $('cat-todo').textContent = openCats.length ? 'Katzen: ' + openCats.join(', ') : 'Katzen: alles erledigt';
 }
 
 export function renderCalTop(now) {
@@ -126,6 +120,25 @@ function checkRow(label, qty, done, onToggle, fk) {
   return b;
 }
 
+// Eingeklappte Rezepte in der Einkaufsliste. Nur pro Gerät (localStorage), nie synchronisiert.
+const COLLAPSE_KEY = 'wohnungs-cockpit.collapsed';
+let collapsedRecipes = null;
+function loadCollapsed() {
+  if (collapsedRecipes) return collapsedRecipes;
+  collapsedRecipes = new Set();
+  try {
+    const arr = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]');
+    if (Array.isArray(arr)) arr.forEach((k) => collapsedRecipes.add(String(k)));
+  } catch (e) { /* ohne Speicher: alles aufgeklappt */ }
+  return collapsedRecipes;
+}
+function toggleCollapsed(key) {
+  const set = loadCollapsed();
+  if (set.has(key)) set.delete(key); else set.add(key);
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...set])); } catch (e) { /* ignorieren */ }
+  renderShop();
+}
+
 function toggleShop(at) {
   write('shop', (list) => {
     const x = list.find((y) => y.at === at);
@@ -169,7 +182,20 @@ export function renderShop() {
       const title = rec ? rec.name : (members.map((i) => i.x.g).find(Boolean) || 'Rezept');
       const sub = el('div', 'sub recipe');
       const sh = el('div', 'sub-head');
-      sh.append(icon('book', 14, '#D4B37A'), el('span', 'sub-title', title));
+      const ckey = rec ? 'rec:' + rec.id : 'key:' + key;
+      const collapsed = loadCollapsed().has(ckey);
+      const openCount = members.filter((i) => !i.x.done).length;
+      const tog = el('button', 'sub-toggle');
+      tog.type = 'button';
+      tog.dataset.fk = 'toggle-' + ckey;
+      tog.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      tog.setAttribute('aria-label', 'Rezept ' + title + (collapsed ? ' aufklappen' : ' einklappen') + (collapsed && openCount ? ', ' + openCount + ' offen' : ''));
+      const chev = el('span', 'chev', collapsed ? '▸' : '▾');
+      chev.setAttribute('aria-hidden', 'true');
+      tog.append(chev, icon('book', 14, '#D4B37A'), el('span', 'sub-title', title));
+      if (collapsed && openCount) tog.append(el('span', 'sub-count', openCount + ' offen'));
+      tog.addEventListener('click', () => toggleCollapsed(ckey));
+      sh.append(tog);
       if (rec) {
         sh.append(button('btn-gold-s', 'Heute kochen', () => cookRecipe(rid), 'Heute kochen: ' + title, 'cook-' + rid));
         sh.append(button('btn-ghost', 'Abwählen', () => dropRecipe(rid), 'Rezept abwählen: ' + title, 'drop-' + rid));
@@ -186,9 +212,11 @@ export function renderShop() {
         }
       }
       sub.append(sh);
-      if (!rec) sub.append(el('div', 'sub-hint', 'Anleitung noch nicht synchronisiert'));
-      members.sort(byDone)
-        .forEach((i) => sub.append(checkRow(i.x.t, i.x.q, i.x.done, () => toggleShop(i.x.at), 'shop-' + i.x.at)));
+      if (!collapsed) {
+        if (!rec) sub.append(el('div', 'sub-hint', 'Anleitung noch nicht synchronisiert'));
+        members.sort(byDone)
+          .forEach((i) => sub.append(checkRow(i.x.t, i.x.q, i.x.done, () => toggleShop(i.x.at), 'shop-' + i.x.at)));
+      }
       g.append(sub);
     });
     groups.push(g);
@@ -239,38 +267,6 @@ export function initTaskForm() {
     input.value = '';
     add.classList.remove('ready');
   });
-}
-
-// ---- Katzen ---------------------------------------------------------------------
-const CAT_DEF = { morgens: ['Morgens', 'Gefüttert', 'Füttern'], abends: ['Abends', 'Gefüttert', 'Füttern'], klo: ['Klo', 'Sauber', 'Reinigen'] };
-
-export function renderCats(now = new Date()) {
-  const btns = data.cats.filter((c) => CAT_DEF[c.id]).map((c) => {
-    const [label, yes, no] = CAT_DEF[c.id];
-    const b = el('button', 'cat-btn');
-    b.type = 'button';
-    b.setAttribute('role', 'checkbox');
-    const done = catDone(c, now);
-    b.setAttribute('aria-checked', done ? 'true' : 'false');
-    b.dataset.fk = 'cat-' + c.id;
-    b.append(el('span', 'cat-label', label), el('span', 'cat-state', done ? yes : no));
-    b.addEventListener('click', () => write('cats', (l) => {
-      const y = l.find((z) => z.id === c.id);
-      if (!y) return;
-      const t = new Date();
-      y.done = !catDone(y, t);
-      if (y.done) y.doneDay = catDay(t); else delete y.doneDay;
-    }));
-    return b;
-  });
-  $('cat-checks').replaceChildren(...btns);
-}
-
-export function renderVet(now) {
-  const vet = getVet();
-  if (!vet) { $('vet-text').textContent = 'Kein Termin eingetragen'; return; }
-  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + vet.offsetDays);
-  $('vet-text').textContent = vet.title + ' · ' + DSHORT[d.getDay()] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '., ' + vet.time;
 }
 
 // ---- Bus -----------------------------------------------------------------------------------------
@@ -370,8 +366,25 @@ export function renderOverlay(now) {
   if (!overlayWasOpen) { overlayWasOpen = true; $('ov-close').focus({ preventScroll: true }); }
 }
 
+// Artikel aus dem Cockpit in die Einkaufsliste. write('shop') stoesst den Sync an, Partner-App und Cockpit gleichen ab.
+export function initShopForm() {
+  const input = $('shop-input');
+  const add = $('shop-add');
+  input.addEventListener('input', () => add.classList.toggle('ready', input.value.trim().length > 0));
+  $('shop-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const t = input.value.trim();
+    if (!t) return;
+    const g = $('shop-group').value;
+    write('shop', (l) => { l.push({ t, done: false, at: newId(), g }); });
+    input.value = '';
+    add.classList.remove('ready');
+  });
+}
+
 export function initTiles() {
   $('btn-cal-all').addEventListener('click', () => openOverlay('cal'));
+  initShopForm();
   $('btn-saved').addEventListener('click', () => openOverlay('saved'));
   $('ov-close').addEventListener('click', closeOverlay);
   $('ov-scrim').addEventListener('click', closeOverlay);

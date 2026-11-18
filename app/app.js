@@ -1,34 +1,16 @@
 // Einstieg: verdrahtet Zustand, Anzeige, Uhr, Skalierung, Wake Lock und Service Worker.
 import './js/household.js'; // zuerst: entfernt #join aus der Adresse, bevor irgendetwas anderes laeuft
 import { subscribe, ui, DEMO } from './js/state.js';
-import { keepFocus, renderClock, renderToday, renderCalTop, renderWeather, renderShop, renderTasks, renderCats, renderVet, renderBus, renderOverlay, closeOverlay, initTiles } from './js/render.js';
+import { keepFocus, renderClock, renderToday, renderCalTop, renderWeather, renderShop, renderTasks, renderBus, renderOverlay, closeOverlay, initTiles } from './js/render.js';
 import { renderCook, initCook, updateTimerView, isCookOpen, closeCook } from './js/cook.js';
 import { isNight, renderNight, peek } from './js/night.js';
 import { initConfirm, isConfirmOpen } from './js/confirm.js';
 import { initWakeLock } from './js/wake.js';
-import { computeFit } from './js/layout.js';
 import { initSetup, boot, syncSoon } from './js/setup.js';
 import { settings } from './js/settings.js';
 import { startLive, refreshLive } from './js/live.js';
 
 const $ = (id) => document.getElementById(id);
-
-// Buehne fuellt den ganzen sichtbaren Bildschirm (safe-area bleibt frei), Raster streckt sich (siehe layout.js).
-function fit() {
-  const vp = $('viewport');
-  const cs = getComputedStyle(vp);
-  const pad = (k) => parseFloat(cs[k]) || 0;
-  const left = pad('paddingLeft');
-  const top = pad('paddingTop');
-  const w = vp.clientWidth - left - pad('paddingRight');
-  const h = vp.clientHeight - top - pad('paddingBottom');
-  if (w <= 0 || h <= 0) return;
-  const f = computeFit(w, h);
-  const st = $('stage').style;
-  st.setProperty('width', f.width + 'px');
-  st.setProperty('height', f.height + 'px');
-  st.setProperty('transform', 'translate(' + left + 'px, ' + top + 'px) scale(' + f.scale + ')');
-}
 
 function applyMode(now) {
   const night = isNight(now);
@@ -53,8 +35,6 @@ function renderEverything(now) {
   renderWeather(now);
   renderShop();
   renderTasks();
-  renderCats();
-  renderVet(now);
   renderBus(now);
   applyMode(now);
 }
@@ -77,8 +57,6 @@ function onTick(force) {
     renderToday(now);
     renderCalTop(now);
     renderWeather(now);
-    renderCats(now);
-    renderVet(now);
     renderBus(now);
     applyMode(now);
   });
@@ -91,7 +69,6 @@ subscribe((topic) => {
       case 'shop': renderShop(); renderToday(now); break;
       case 'recipes': renderShop(); renderToday(now); applyMode(now); break;
       case 'tasks': renderTasks(); renderToday(now); break;
-      case 'cats': renderCats(); renderToday(now); break;
       case 'weather': renderWeather(now); applyMode(now); break;
       case 'transit': renderBus(now); break;
       case 'cal': renderCalTop(now); renderToday(now); applyMode(now); break;
@@ -117,13 +94,10 @@ initCook();
 initConfirm();
 initSetup();
 $('night').addEventListener('click', () => { peek(); onTick(true); });
-fit();
-window.addEventListener('resize', fit);
-window.addEventListener('orientationchange', fit);
 renderEverything(new Date());
 onTick(true);
 setInterval(() => onTick(false), 1000);
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { fit(); onTick(true); syncSoon(); refreshLive(); } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { onTick(true); syncSoon(); refreshLive(); } });
 initWakeLock();
 boot();
 if (!DEMO) startLive(); // im Demo-Modus nie Wetter- oder Bus-Abruf
