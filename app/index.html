@@ -50,6 +50,23 @@
       </div>
     </section>
 
+    <!-- Notizen (gemeinsamer Zettel, Eintraege in tasks mit note: true, synchronisiert) -->
+    <section id="tile-notes" class="tile tile-notes" aria-label="Notizen">
+      <div class="tile-head">
+        <h2 class="h">Notizen</h2>
+      </div>
+      <div id="note-list" class="scroll note-list"></div>
+      <div id="note-empty" class="empty" hidden>Noch keine Notizen. Unten eine schreiben.</div>
+      <span class="hint">Chip: an wen, × löscht</span>
+      <form id="note-form" class="task-form" autocomplete="off">
+        <label class="grow">
+          <span class="sr">Neue Notiz</span>
+          <input id="note-input" type="text" placeholder="z. B. Bin um 18 Uhr da" maxlength="200">
+        </label>
+        <button id="note-add" type="submit" class="btn-add">Hinzufügen</button>
+      </form>
+    </section>
+
     <!-- Heute zu tun (gleicher Aufbau wie Diese Woche, Eintraege mit today: true) -->
     <section id="tile-today" class="tile tile-tasks tile-today" aria-label="Heute zu tun">
       <div class="tile-head">
@@ -267,7 +284,7 @@
 
           <button id="cfg-clear" type="button" class="btn-ghost">Orts-Einstellungen löschen</button>
         </section>
-        <p class="set-msg" id="app-version">Version 2.10 (18.11.2026)</p>
+        <p class="set-msg" id="app-version">Version 2.11 (18.11.2026)</p>
       </div>
     </div>
   </div>

@@ -244,9 +244,41 @@ function fillTasks(items, ids) {
 }
 
 export function renderTasks() {
-  const week = data.tasks.filter((x) => !x.today);
+  const week = data.tasks.filter((x) => !x.today && !x.note);
   fillTasks(week.filter((x) => !x.done), { list: 'task-list', empty: 'task-empty', title: 'tasks-title', label: 'Diese Woche', hideDone: true, all: week });
-  fillTasks(data.tasks.filter((x) => x.today), { list: 'hd-list', empty: 'hd-empty', title: 'hd-title', label: 'Heute zu tun' });
+  fillTasks(data.tasks.filter((x) => x.today && !x.note), { list: 'hd-list', empty: 'hd-empty', title: 'hd-title', label: 'Heute zu tun' });
+  renderNotes();
+}
+
+// Notizen: Eintraege in tasks mit note: true. Chip wechselt, an wen die Notiz geht. Synchronisiert wie Aufgaben.
+export function renderNotes() {
+  const rows = data.tasks.filter((x) => x.note).slice().reverse().map((x) => {
+    const row = el('div', 'note');
+    row.append(el('span', 'note-text', x.text));
+    const who = button('who ' + (WHO_CLASS[x.who] || 'who-beide'), x.who,
+      () => write('tasks', (l) => { const y = l.find((z) => z.id === x.id); if (y) y.who = WHO[(WHO.indexOf(y.who) + 1) % WHO.length]; }),
+      'Notiz für: ' + x.who + '. Tippen zum Wechseln', 'note-who-' + x.id);
+    const del = button('del', null, () => write('tasks', (l) => l.filter((z) => z.id !== x.id)), 'Notiz löschen: ' + x.text, 'note-del-' + x.id);
+    del.append(icon('close', 16));
+    row.append(who, del);
+    return row;
+  });
+  $('note-list').replaceChildren(...rows);
+  $('note-empty').hidden = rows.length > 0;
+}
+
+export function initNoteForm() {
+  const input = $('note-input');
+  const add = $('note-add');
+  input.addEventListener('input', () => add.classList.toggle('ready', input.value.trim().length > 0));
+  $('note-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    write('tasks', (l) => { l.push({ id: newId(), text, who: 'Beide', done: false, note: true }); });
+    input.value = '';
+    add.classList.remove('ready');
+  });
 }
 
 // Eingabe fuer "Heute zu tun": gleiche Liste tasks, Eintrag bekommt today: true.
@@ -531,7 +563,7 @@ export function renderCalMonth(now = new Date()) {
 
 // ---- Aufklappen: eine Kachel wird gross, die anderen rutschen zur Seite (verdraengen) -----------------
 // Nur Ansicht, pro Geraet gespeichert, nie synchronisiert. Die Kachel steht im Attribut data-open von #day.
-const EXPANDABLE = ['tile-cal', 'tile-shop', 'tile-today', 'tile-tasks'];
+const EXPANDABLE = ['tile-cal', 'tile-shop', 'tile-today', 'tile-tasks', 'tile-notes'];
 const OPEN_KEY = 'wohnungs-cockpit.open';
 let openTile = null;
 try { const v = localStorage.getItem(OPEN_KEY); if (EXPANDABLE.includes(v)) openTile = v; } catch (e) { /* ignorieren */ }
@@ -595,6 +627,7 @@ export function initTiles() {
   $('btn-cal-all').addEventListener('click', () => openOverlay('cal'));
   $('btn-leave').addEventListener('click', () => openOverlay('leave'));
   initTodayForm();
+  initNoteForm();
   initShopForm();
   $('btn-saved').addEventListener('click', () => openOverlay('saved'));
   $('ov-close').addEventListener('click', closeOverlay);
