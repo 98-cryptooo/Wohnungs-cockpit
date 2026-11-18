@@ -443,6 +443,64 @@ function renderLeave(body) {
   body.replaceChildren(list, foot);
 }
 
+// ---- Aufklappen: eine Kachel wird gross, die anderen rutschen zur Seite (verdraengen) -----------------
+// Nur Ansicht, pro Geraet gespeichert, nie synchronisiert. Die Kachel steht im Attribut data-open von #day.
+const EXPANDABLE = ['tile-cal', 'tile-shop', 'tile-today', 'tile-tasks', 'tile-bus'];
+const OPEN_KEY = 'wohnungs-cockpit.open';
+let openTile = null;
+try { const v = localStorage.getItem(OPEN_KEY); if (EXPANDABLE.includes(v)) openTile = v; } catch (e) { /* ignorieren */ }
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function expandIcon(on) {
+  const s = document.createElementNS(SVG_NS, 'svg');
+  s.setAttribute('aria-hidden', 'true');
+  s.setAttribute('width', '18');
+  s.setAttribute('height', '18');
+  s.setAttribute('viewBox', '0 0 24 24');
+  s.setAttribute('fill', 'none');
+  s.setAttribute('stroke', 'currentColor');
+  s.setAttribute('stroke-width', '2');
+  s.setAttribute('stroke-linecap', 'round');
+  s.setAttribute('stroke-linejoin', 'round');
+  const p = document.createElementNS(SVG_NS, 'path');
+  p.setAttribute('d', on ? 'M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7' : 'M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7');
+  s.append(p);
+  return s;
+}
+
+function applyOpenTile() {
+  $('day').dataset.open = openTile || '';
+  EXPANDABLE.forEach((id) => {
+    const on = id === openTile;
+    const tile = $(id);
+    tile.classList.toggle('is-open', on);
+    const b = tile.querySelector('.expand');
+    if (!b) return;
+    b.setAttribute('aria-expanded', on ? 'true' : 'false');
+    b.setAttribute('aria-label', on ? 'Kachel wieder verkleinern' : 'Kachel vergrößern');
+    b.replaceChildren(expandIcon(on));
+  });
+}
+
+export function initExpand() {
+  EXPANDABLE.forEach((id) => {
+    const tile = $(id);
+    const head = tile.querySelector(':scope > .tile-head, :scope > .tile-head-base');
+    if (!head) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'expand';
+    b.dataset.fk = 'expand-' + id;
+    b.addEventListener('click', () => {
+      openTile = openTile === id ? null : id;
+      try { if (openTile) localStorage.setItem(OPEN_KEY, openTile); else localStorage.removeItem(OPEN_KEY); } catch (e) { /* ignorieren */ }
+      applyOpenTile();
+    });
+    head.append(b);
+  });
+  applyOpenTile();
+}
+
 export function initTiles() {
   $('btn-cal-all').addEventListener('click', () => openOverlay('cal'));
   $('btn-leave').addEventListener('click', () => openOverlay('leave'));

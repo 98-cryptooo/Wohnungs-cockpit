@@ -689,3 +689,43 @@ h2, h3, p { margin: 0; }
 
 .link-btn { display: flex; align-items: center; text-decoration: none; color: var(--text); white-space: nowrap; }
 .sub-hint { font-size: 14px; color: var(--muted); padding: 0 0 4px; }
+
+/* Aufklappen: Kachel-Knopf und Verdraengen (die anderen Kacheln rutschen zur Seite) */
+.expand {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  margin: -12px -12px -12px 0;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.expand:hover { color: var(--text); }
+.tile.is-open { border-color: #3A3E44; }
+
+/* Querformat: die offene Kachel bekommt mehr Breite und Hoehe, die anderen werden kleiner */
+@media (min-width: 1100px) and (min-height: 700px) {
+  .day { transition: grid-template-columns 0.25s ease, grid-template-rows 0.25s ease; }
+  .day[data-open="tile-cal"] { grid-template-columns: 1fr 1.9fr 1fr; }
+  .day[data-open="tile-shop"], .day[data-open="tile-tasks"] { grid-template-columns: 1fr 1fr 1.9fr; }
+  .day[data-open="tile-today"], .day[data-open="tile-bus"] { grid-template-columns: 1.9fr 1fr 1fr; }
+  .day[data-open="tile-bus"] { grid-template-rows: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1fr); }
+  .day[data-open="tile-today"] { grid-template-rows: minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 1.6fr); }
+  .day[data-open="tile-shop"] { grid-template-rows: minmax(0, 1.5fr) minmax(0, 1.5fr) minmax(0, 0.8fr); }
+  .day[data-open="tile-tasks"] { grid-template-rows: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.8fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .day { transition: none !important; }
+}
+
+/* Tablet hochkant: offene Kachel ueber die ganze Breite */
+@media (min-width: 700px) and (max-width: 1099px) {
+  .tile.is-open { grid-column: 1 / -1; }
+}
+
+/* Telefon und Tablet: offene Liste darf hoeher werden */
+.tile.is-open .shop-list, .tile.is-open .task-list { max-height: 80vh; }

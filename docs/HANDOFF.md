@@ -28,6 +28,7 @@ Stand: 17.11.2026. Die ausführliche Projektdoku mit allen Revisionen und Entsch
 ## Revisionen
 | Version | Datum | Änderung |
 | --- | --- | --- |
+| 2.8 | 18.11.2026 | Aufklappen: jede Kachel hat einen Knopf zum Vergrößern. Die offene Kachel wird größer, die anderen rutschen zur Seite (Querformat), im Hochformat über die ganze Breite. Auswahl pro Gerät gespeichert. Service Worker v20. |
 | 2.7 | 18.11.2026 | Bus-Kachel links unter der Uhr, Abfahrten wieder untereinander. Kalender im Querformat über die ganze Mitte. Heute zu tun unten links. Service Worker v19. |
 | 2.6 | 18.11.2026 | Layout repariert: Uhr-Zeile und Schriftgröße im Querformat griffen nicht (Basisregeln standen danach), Heute zu tun überschrieb die Platzierung der Woche-Kachel. Button Wohnung verlassen kleiner. Tablet hochkant: Kacheln behalten eigene Höhe, Einkaufsliste maximal 60 % der Höhe. Heute zu tun steht im Telefon-Layout vor dem Kalender. Service Worker v17. |
 | 2.5 | 18.11.2026 | Layout aufgeräumt: Heute-Abschnitt in der Uhr-Kachel entfernt (Sync-Knopf wandert in den Kopf von Heute zu tun), Smart-Home-Hinweis entfernt. Heute zu tun links neben der Mitte, Kalender Mitte oben, Bus Mitte unten mit Abfahrten nebeneinander, Einkauf rechts oben, Diese Woche rechts unten. Erledigte Aufgaben in Diese Woche ausgeblendet (Woche neu starten holt sie zurück). Button Wohnung verlassen neben der Uhr. Service Worker v16. |

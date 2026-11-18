@@ -1,7 +1,7 @@
 // Einstieg: verdrahtet Zustand, Anzeige, Uhr, Skalierung, Wake Lock und Service Worker.
 import './js/household.js'; // zuerst: entfernt #join aus der Adresse, bevor irgendetwas anderes laeuft
 import { subscribe, ui, DEMO } from './js/state.js';
-import { keepFocus, renderClock, renderCalTop, renderWeather, renderShop, renderTasks, renderBus, renderLeaveButton, renderOverlay, closeOverlay, initTiles } from './js/render.js';
+import { keepFocus, renderClock, renderCalTop, renderWeather, renderShop, renderTasks, renderBus, renderLeaveButton, renderOverlay, closeOverlay, initTiles, initExpand } from './js/render.js';
 import { renderCook, initCook, updateTimerView, isCookOpen, closeCook } from './js/cook.js';
 import { isNight, renderNight, peek } from './js/night.js';
 import { initConfirm, isConfirmOpen } from './js/confirm.js';
@@ -89,6 +89,7 @@ settings.subscribe(() => { // Wetterort, Haltestelle oder Fussweg geaendert: sof
 });
 
 initTiles();
+initExpand();
 initCook();
 initConfirm();
 initSetup();
