@@ -27,7 +27,10 @@
       <div class="clock-head">
         <div class="clock-row">
           <div id="clock" class="clock">00:00</div>
-
+          <button id="btn-leave" type="button" class="btn-leave">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg>
+            <span>Wohnung verlassen</span>
+          </button>
         </div>
         <div id="date-label" class="date-label"></div>
       </div>
@@ -108,8 +111,27 @@
         <select id="shop-group" class="shop-group">
           <option value="Allgemein">Lebensmittel</option>
           <option value="Drogerie">Drogerie</option>
+          <option value="Andere">Andere</option>
+          <option value="Katzen">Katzen</option>
         </select>
         <button id="shop-add" type="submit" class="btn-add">Hinzufügen</button>
+      </form>
+    </section>
+
+    <!-- Heute zu tun (gleicher Aufbau wie Diese Woche, Eintraege mit today: true) -->
+    <section id="tile-today" class="tile tile-tasks tile-today" aria-label="Heute zu tun">
+      <div class="tile-head">
+        <h2 id="hd-title" class="h">Heute zu tun</h2>
+      </div>
+      <div id="hd-list" class="scroll task-list"></div>
+      <div id="hd-empty" class="empty" hidden>Noch nichts für heute. Unten eine hinzufügen.</div>
+      <span class="hint">Name antippen zum Wechseln</span>
+      <form id="hd-form" class="task-form" autocomplete="off">
+        <label class="grow">
+          <span class="sr">Neu für heute</span>
+          <input id="hd-input" type="text" placeholder="Neu für heute, z. B. Post holen" maxlength="60">
+        </label>
+        <button id="hd-add" type="submit" class="btn-add">Hinzufügen</button>
       </form>
     </section>
 

@@ -231,8 +231,9 @@ export function renderShop() {
 const WHO = ['Rik', 'Melina', 'Beide'];
 const WHO_CLASS = { Rik: 'who-rik', Melina: 'who-melina', Beide: 'who-beide' };
 
-export function renderTasks() {
-  const rows = data.tasks.map((x) => {
+// Zeichnet eine Aufgabenliste (Woche oder Heute). items sind Teilmengen von data.tasks.
+function fillTasks(items, ids) {
+  const rows = items.map((x) => {
     const row = el('div', 'task');
     const chk = checkRow(x.text, '', x.done, () => write('tasks', (l) => { const y = l.find((z) => z.id === x.id); if (y) y.done = !y.done; }), 'task-' + x.id);
     chk.setAttribute('aria-label', x.text);
@@ -244,9 +245,29 @@ export function renderTasks() {
     row.append(chk, who, del);
     return row;
   });
-  $('task-list').replaceChildren(...rows);
-  $('task-empty').hidden = rows.length > 0;
-  $('tasks-title').textContent = 'Diese Woche · ' + data.tasks.filter((x) => x.done).length + '/' + data.tasks.length;
+  $(ids.list).replaceChildren(...rows);
+  $(ids.empty).hidden = rows.length > 0;
+  $(ids.title).textContent = ids.label + ' · ' + items.filter((x) => x.done).length + '/' + items.length;
+}
+
+export function renderTasks() {
+  fillTasks(data.tasks.filter((x) => !x.today), { list: 'task-list', empty: 'task-empty', title: 'tasks-title', label: 'Diese Woche' });
+  fillTasks(data.tasks.filter((x) => x.today), { list: 'hd-list', empty: 'hd-empty', title: 'hd-title', label: 'Heute zu tun' });
+}
+
+// Eingabe fuer "Heute zu tun": gleiche Liste tasks, Eintrag bekommt today: true.
+export function initTodayForm() {
+  const input = $('hd-input');
+  const add = $('hd-add');
+  input.addEventListener('input', () => add.classList.toggle('ready', input.value.trim().length > 0));
+  $('hd-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    write('tasks', (l) => { l.push({ id: newId(), text, who: 'Beide', done: false, today: true }); });
+    input.value = '';
+    add.classList.remove('ready');
+  });
 }
 
 export function initTaskForm() {
@@ -347,6 +368,8 @@ export function renderOverlay(now) {
     });
     if (!rows.length) rows.push(el('div', 'empty', !DEMO && !getCalendarState().stamp ? 'Noch keine Termine.' : 'Keine Termine in Sicht.'));
     body.replaceChildren(...rows);
+  } else if (kind === 'leave') {
+    renderLeave(body);
   } else {
     $('ov-title').textContent = 'Rezeptsammlung';
     const saved = data.recipes.filter((r) => r.status === 'saved');
@@ -382,8 +405,54 @@ export function initShopForm() {
   });
 }
 
+// ---- Wohnung verlassen: Checkliste ----------------------------------------------------
+// Haken nur auf diesem Geraet (localStorage), nie synchronisiert.
+const LEAVE_KEY = 'wohnungs-cockpit.leave';
+const LEAVE_ITEMS = [
+  ['katzenklo', 'Katzenklo gemacht'],
+  ['katzenessen', 'Katzen Essen gegeben'],
+  ['licht', 'Licht aus'],
+  ['ofen', 'Ofen aus'],
+  ['foehn', 'Föhn aus'],
+  ['fenster', 'Fenster alle zu']
+];
+
+function leaveChecked() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(LEAVE_KEY) || '[]');
+    return new Set(Array.isArray(arr) ? arr.map(String) : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+function leaveSave(set) {
+  try { localStorage.setItem(LEAVE_KEY, JSON.stringify([...set])); } catch (e) { /* ignorieren */ }
+}
+function toggleLeave(id) {
+  const set = leaveChecked();
+  if (set.has(id)) set.delete(id); else set.add(id);
+  leaveSave(set);
+  keepFocus(() => renderOverlay(new Date()));
+}
+
+function renderLeave(body) {
+  $('ov-title').textContent = 'Wohnung verlassen';
+  const checked = leaveChecked();
+  const list = el('div', 'leave-list');
+  LEAVE_ITEMS.forEach(([id, label]) => {
+    list.append(checkRow(label, '', checked.has(id), () => toggleLeave(id), 'leave-' + id));
+  });
+  const foot = el('div', 'leave-foot');
+  foot.append(
+    button('btn-ghost', 'Alle zurücksetzen', () => { leaveSave(new Set()); keepFocus(() => renderOverlay(new Date())); }, 'Alle Häkchen zurücksetzen', 'leave-reset'),
+    button('btn-gold-s', 'Fertig & Schließen', closeOverlay, 'Fertig und schließen', 'leave-close'));
+  body.replaceChildren(list, foot);
+}
+
 export function initTiles() {
   $('btn-cal-all').addEventListener('click', () => openOverlay('cal'));
+  $('btn-leave').addEventListener('click', () => openOverlay('leave'));
+  initTodayForm();
   initShopForm();
   $('btn-saved').addEventListener('click', () => openOverlay('saved'));
   $('ov-close').addEventListener('click', closeOverlay);
