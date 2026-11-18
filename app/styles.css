@@ -115,15 +115,15 @@ h2, h3, p { margin: 0; }
   }
   .day { align-items: stretch; }
   .tile { padding: 18px 20px; }
-  /* Links: Uhr oben, Heute zu tun darunter */
+  /* Links: Uhr oben, Bus darunter, Heute zu tun unten */
   .tile-clock { grid-column: 1; grid-row: 1; }
-  /* Mitte: Kalender oben, Bus darunter */
-  .tile-cal { grid-column: 2; grid-row: 1 / span 2; }
-  .tile-bus { grid-column: 2; grid-row: 3; }
+  .tile-bus { grid-column: 1; grid-row: 2; }
+  .tile-today { grid-column: 1; grid-row: 3; gap: 8px; }
+  /* Mitte: Kalender ueber die ganze Hoehe */
+  .tile-cal { grid-column: 2; grid-row: 1 / span 3; }
   /* Rechts: Einkauf oben, Diese Woche darunter */
   .tile-shop { grid-column: 3; grid-row: 1 / span 2; }
   .tile-tasks { grid-column: 3; grid-row: 3; gap: 8px; }
-  .tile-today { grid-column: 1; grid-row: 2 / span 2; gap: 8px; }
   .tile-shop .shop-list, .tile-tasks .task-list { max-height: none; }
 }
 .tile-bus { min-height: 0; }
@@ -408,8 +408,8 @@ h2, h3, p { margin: 0; }
 
 
 /* Bus */
-.bus-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.dep { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.bus-list { display: flex; flex-direction: column; gap: 10px; }
+.dep { display: flex; align-items: center; gap: 12px; min-height: 48px; min-width: 0; }
 .dep > .col { min-width: 0; max-width: 100%; }
 .dep-dir { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .line {
