@@ -120,23 +120,17 @@ function checkRow(label, qty, done, onToggle, fk) {
   return b;
 }
 
-// Eingeklappte Rezepte in der Einkaufsliste. Nur pro Gerät (localStorage), nie synchronisiert.
-const COLLAPSE_KEY = 'wohnungs-cockpit.collapsed';
-let collapsedRecipes = null;
-function loadCollapsed() {
-  if (collapsedRecipes) return collapsedRecipes;
-  collapsedRecipes = new Set();
-  try {
-    const arr = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]');
-    if (Array.isArray(arr)) arr.forEach((k) => collapsedRecipes.add(String(k)));
-  } catch (e) { /* ohne Speicher: alles aufgeklappt */ }
-  return collapsedRecipes;
+// Eingeklappte Rezepte: Eintraege in der Liste cats mit id "rec-<Schluessel>" (done = eingeklappt).
+// So gleicht der Sync den Zustand zwischen Handy und iPad ab.
+const recKey = (key) => 'rec-' + key;
+function isCollapsed(key) {
+  return data.cats.some((c) => c.id === recKey(key) && c.done);
 }
 function toggleCollapsed(key) {
-  const set = loadCollapsed();
-  if (set.has(key)) set.delete(key); else set.add(key);
-  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...set])); } catch (e) { /* ignorieren */ }
-  renderShop();
+  write('cats', (l) => {
+    const y = l.find((z) => z.id === recKey(key));
+    if (y) y.done = !y.done; else l.push({ id: recKey(key), done: true });
+  });
 }
 
 function toggleShop(at) {
@@ -183,7 +177,7 @@ export function renderShop() {
       const sub = el('div', 'sub recipe');
       const sh = el('div', 'sub-head');
       const ckey = rec ? 'rec:' + rec.id : 'key:' + key;
-      const collapsed = loadCollapsed().has(ckey);
+      const collapsed = isCollapsed(ckey);
       const openCount = members.filter((i) => !i.x.done).length;
       const tog = el('button', 'sub-toggle');
       tog.type = 'button';
@@ -406,8 +400,7 @@ export function initShopForm() {
 }
 
 // ---- Wohnung verlassen: Checkliste ----------------------------------------------------
-// Haken nur auf diesem Geraet (localStorage), nie synchronisiert.
-const LEAVE_KEY = 'wohnungs-cockpit.leave';
+// Haken: Eintraege in der Liste cats mit id "leave-<Punkt>" (done = erledigt). Der Sync gleicht sie ab.
 const LEAVE_ITEMS = [
   ['katzenklo', 'Katzenklo gemacht'],
   ['katzenessen', 'Katzen Essen gegeben'],
@@ -417,22 +410,18 @@ const LEAVE_ITEMS = [
   ['fenster', 'Fenster alle zu']
 ];
 
+const leaveRows = () => data.cats.filter((c) => c.id.startsWith('leave-'));
 function leaveChecked() {
-  try {
-    const arr = JSON.parse(localStorage.getItem(LEAVE_KEY) || '[]');
-    return new Set(Array.isArray(arr) ? arr.map(String) : []);
-  } catch (e) {
-    return new Set();
-  }
-}
-function leaveSave(set) {
-  try { localStorage.setItem(LEAVE_KEY, JSON.stringify([...set])); } catch (e) { /* ignorieren */ }
+  return new Set(leaveRows().filter((c) => c.done).map((c) => c.id.slice('leave-'.length)));
 }
 function toggleLeave(id) {
-  const set = leaveChecked();
-  if (set.has(id)) set.delete(id); else set.add(id);
-  leaveSave(set);
-  keepFocus(() => renderOverlay(new Date()));
+  write('cats', (l) => {
+    const y = l.find((z) => z.id === 'leave-' + id);
+    if (y) y.done = !y.done; else l.push({ id: 'leave-' + id, done: true });
+  });
+}
+function resetLeave() {
+  write('cats', (l) => { l.forEach((z) => { if (z.id.startsWith('leave-')) z.done = false; }); });
 }
 
 function renderLeave(body) {
@@ -444,7 +433,7 @@ function renderLeave(body) {
   });
   const foot = el('div', 'leave-foot');
   foot.append(
-    button('btn-ghost', 'Alle zurücksetzen', () => { leaveSave(new Set()); keepFocus(() => renderOverlay(new Date())); }, 'Alle Häkchen zurücksetzen', 'leave-reset'),
+    button('btn-ghost', 'Alle zurücksetzen', resetLeave, 'Alle Häkchen zurücksetzen', 'leave-reset'),
     button('btn-gold-s', 'Fertig & Schließen', closeOverlay, 'Fertig und schließen', 'leave-close'));
   body.replaceChildren(list, foot);
 }
