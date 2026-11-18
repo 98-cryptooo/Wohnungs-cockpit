@@ -50,6 +50,27 @@
       </div>
     </section>
 
+    <!-- Heute zu tun (gleicher Aufbau wie Diese Woche, Eintraege mit today: true) -->
+    <section id="tile-today" class="tile tile-tasks tile-today" aria-label="Heute zu tun">
+      <div class="tile-head">
+        <h2 id="hd-title" class="h">Heute zu tun</h2>
+        <button id="btn-sync" type="button" class="sync-btn" aria-label="Verbindung">
+          <span id="sync-dot" class="sync-dot" aria-hidden="true"></span>
+          <span id="sync-label"></span>
+        </button>
+      </div>
+      <div id="hd-list" class="scroll task-list"></div>
+      <div id="hd-empty" class="empty" hidden>Noch nichts für heute. Unten eine hinzufügen.</div>
+      <span class="hint">Text: abhaken · Chip: Zuständigkeit wechseln</span>
+      <form id="hd-form" class="task-form" autocomplete="off">
+        <label class="grow">
+          <span class="sr">Neu für heute</span>
+          <input id="hd-input" type="text" placeholder="Neu für heute, z. B. Post holen" maxlength="60">
+        </label>
+        <button id="hd-add" type="submit" class="btn-add">Hinzufügen</button>
+      </form>
+    </section>
+
     <!-- Kalender -->
     <section id="tile-cal" class="tile tile-cal" aria-label="Kalender">
       <div class="tile-head">
@@ -80,27 +101,6 @@
           <option value="Katzen">Katzen</option>
         </select>
         <button id="shop-add" type="submit" class="btn-add">Hinzufügen</button>
-      </form>
-    </section>
-
-    <!-- Heute zu tun (gleicher Aufbau wie Diese Woche, Eintraege mit today: true) -->
-    <section id="tile-today" class="tile tile-tasks tile-today" aria-label="Heute zu tun">
-      <div class="tile-head">
-        <h2 id="hd-title" class="h">Heute zu tun</h2>
-        <button id="btn-sync" type="button" class="sync-btn" aria-label="Verbindung">
-          <span id="sync-dot" class="sync-dot" aria-hidden="true"></span>
-          <span id="sync-label"></span>
-        </button>
-      </div>
-      <div id="hd-list" class="scroll task-list"></div>
-      <div id="hd-empty" class="empty" hidden>Noch nichts für heute. Unten eine hinzufügen.</div>
-      <span class="hint">Text: abhaken · Chip: Zuständigkeit wechseln</span>
-      <form id="hd-form" class="task-form" autocomplete="off">
-        <label class="grow">
-          <span class="sr">Neu für heute</span>
-          <input id="hd-input" type="text" placeholder="Neu für heute, z. B. Post holen" maxlength="60">
-        </label>
-        <button id="hd-add" type="submit" class="btn-add">Hinzufügen</button>
       </form>
     </section>
 
