@@ -6,6 +6,7 @@ import { renderCook, initCook, updateTimerView, isCookOpen, closeCook } from './
 import { isNight, renderNight, peek } from './js/night.js';
 import { initConfirm, isConfirmOpen } from './js/confirm.js';
 import { initWakeLock } from './js/wake.js';
+import { initStandby, standbyTick, isStandby, renderStandby } from './js/standby.js';
 import { initSetup, boot, syncSoon } from './js/setup.js';
 import { settings } from './js/settings.js';
 import { startLive, refreshLive } from './js/live.js';
@@ -20,13 +21,17 @@ function applyMode(now) {
     closeFocus(true);
     $('overlay').hidden = true;
     $('cook').hidden = true;
+    $('standby').hidden = true;
     renderNight(now);
     return;
   }
+  // Standby liegt ueber allem (ausser Ersteinrichtung), das Cockpit darunter bleibt wie es war
+  $('standby').hidden = !isStandby();
+  if (isStandby()) renderStandby(now);
   renderOverlay(now);
   renderCook();
   // Hintergrund nicht bedienbar, solange ein Dialog offen ist (die Fokusansicht zaehlt fuer das Raster mit)
-  const dialog = !!ui.open || isCookOpen() || !$('setup').hidden || !$('settings').hidden;
+  const dialog = !!ui.open || isCookOpen() || !$('setup').hidden || !$('settings').hidden || isStandby();
   $('day').inert = dialog || isFocusOpen();
   $('focus').inert = dialog;
 }
@@ -51,8 +56,9 @@ function onTick(force) {
   if (ui.timer && !night) updateTimerView();
   // Abfahrten, die man nicht mehr schafft, spaetestens nach 15 s ausblenden (nur solange sichtbar)
   if (!night && document.visibilityState === 'visible' && Date.now() - lastBus >= 15000) { lastBus = Date.now(); renderBus(now); }
+  const standbyChanged = standbyTick(night || isCookOpen() || !$('setup').hidden);
   const key = now.getHours() * 60 + now.getMinutes();
-  if (!force && key === lastMinute && night === lastNight) return;
+  if (!force && !standbyChanged && key === lastMinute && night === lastNight) return;
   lastMinute = key;
   lastNight = night;
   keepFocus(() => {
@@ -98,6 +104,7 @@ initExpand();
 initCook();
 initConfirm();
 initSetup();
+initStandby(() => applyMode(new Date()));
 $('night').addEventListener('click', () => { peek(); onTick(true); });
 renderEverything(new Date());
 onTick(true);

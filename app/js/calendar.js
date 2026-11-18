@@ -3,7 +3,7 @@
 // Zugang und Speicher hereingereicht. Haushaltscode und Schluessel erscheinen nie in Meldungen oder Logs.
 import { BASE_URL, buildHeaders } from './sync.js';
 
-export const CAL_DAYS = 21;
+export const CAL_DAYS = 42; // fuenf Wochen fuer den Standby, die Funktion erlaubt bis 60
 export const CAL_INTERVAL_MS = 5 * 60 * 1000;
 export const CAL_TIMEOUT_MS = 15000;
 export const CAL_MIN_GAP_MS = 60 * 1000;

@@ -311,7 +311,7 @@
 
           <button id="cfg-clear" type="button" class="btn-ghost">Orts-Einstellungen löschen</button>
         </section>
-        <p class="set-msg" id="app-version">Version 2.12 (18.11.2026)</p>
+        <p class="set-msg" id="app-version">Version 2.13 (18.11.2026)</p>
       </div>
     </div>
   </div>
@@ -326,6 +326,15 @@
         <button id="confirm-yes" type="button" class="btn-next"></button>
       </div>
     </div>
+  </div>
+
+  <!-- Standby: nach 5 Minuten ohne Beruehrung, ein Tipp schliesst ihn -->
+  <div id="standby" class="standby" role="button" aria-label="Standby. Tippen, um das Cockpit zu öffnen" hidden>
+    <div class="sb-head">
+      <h2 id="sb-month" class="sb-month"></h2>
+      <div class="sb-now"><span id="sb-temp" class="sb-temp"></span><span id="sb-time" class="sb-time"></span></div>
+    </div>
+    <div id="sb-grid" class="sb-grid"></div>
   </div>
 
   <!-- Nachtmodus -->

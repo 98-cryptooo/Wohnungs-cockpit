@@ -507,7 +507,7 @@ function renderLeave(body) {
 let monthView = null; // { y, m } (m = 0 bis 11)
 let selDay = null;    // 'YYYY-MM-DD'
 const isoOf = (y, m, d) => y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-const calIndex = (name) => { let h = 0; for (const ch of String(name || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 4; };
+export const calIndex = (name) => { let h = 0; for (const ch of String(name || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 4; };
 const allEvents = (now) => (DEMO ? calendarRaw(now) : getCalendarState().events);
 
 function shiftMonth(delta) {
