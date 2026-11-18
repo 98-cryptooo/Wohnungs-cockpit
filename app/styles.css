@@ -113,6 +113,7 @@ h2, h3, p { margin: 0; }
     grid-template-rows: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
     gap: 14px 16px;
   }
+  .day { align-items: stretch; }
   .tile { padding: 18px 20px; }
   /* Links: Uhr oben, Heute zu tun darunter */
   .tile-clock { grid-column: 1; grid-row: 1; }
@@ -409,6 +410,8 @@ h2, h3, p { margin: 0; }
 /* Bus */
 .bus-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .dep { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.dep > .col { min-width: 0; max-width: 100%; }
+.dep-dir { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .line {
   font-family: var(--font-display);
   font-size: 15px;
