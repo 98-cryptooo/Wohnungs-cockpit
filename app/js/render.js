@@ -5,7 +5,7 @@ import { cookRecipe, dropRecipe, rebuy } from './cook.js';
 import { askConfirm } from './confirm.js';
 import { recipeForItem } from './core.js';
 import { safeUrl } from './util.js';
-import { buildCalendar, getCalendarState, calendarNote } from './calendar.js';
+import { buildCalendar, getCalendarState, calendarNote, berlinNow } from './calendar.js';
 import { buildWeather, demoWeather, getWeatherState, usableWeather, weatherMessage } from './weather.js';
 import { buildDepartures, getTransitState, usableDepartures, busMessage } from './transit.js';
 import { standText } from './poll.js';
@@ -57,6 +57,10 @@ export function renderCalTop(now) {
   const note = DEMO ? '' : calendarNote(st);
   $('cal-note').hidden = !note;
   $('cal-note').textContent = note;
+  const open = openTile === 'tile-cal';
+  $('cal-top').hidden = open;
+  $('btn-cal-all').hidden = open;
+  renderCalMonth(now);
 }
 
 // ---- Wetter ------------------------------------------------------------------------------------
@@ -443,9 +447,91 @@ function renderLeave(body) {
   body.replaceChildren(list, foot);
 }
 
+// ---- Kalender-Monat (aufgeklappt): Monat wechseln, Tag waehlen, Heute ----------------------------
+// Nur Ansicht. Monat und gewaehlter Tag gelten fuer diese Sitzung.
+let monthView = null; // { y, m } (m = 0 bis 11)
+let selDay = null;    // 'YYYY-MM-DD'
+const isoOf = (y, m, d) => y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+const calIndex = (name) => { let h = 0; for (const ch of String(name || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 4; };
+const allEvents = (now) => (DEMO ? calendarRaw(now) : getCalendarState().events);
+
+function shiftMonth(delta) {
+  let { y, m } = monthView;
+  m += delta;
+  while (m < 0) { m += 12; y--; }
+  while (m > 11) { m -= 12; y++; }
+  monthView = { y, m };
+  selDay = isoOf(y, m, 1);
+  keepFocus(() => renderCalMonth(new Date()));
+}
+function goToday(now) {
+  const t = berlinNow(now).date;
+  const [y, m] = t.split('-').map(Number);
+  monthView = { y, m: m - 1 };
+  selDay = t;
+  keepFocus(() => renderCalMonth(now));
+}
+
+export function renderCalMonth(now = new Date()) {
+  const root = $('cal-month');
+  if (!root) return;
+  root.hidden = openTile !== 'tile-cal';
+  if (root.hidden) return;
+  const today = berlinNow(now).date;
+  if (!monthView) { const [y, m] = today.split('-').map(Number); monthView = { y, m: m - 1 }; }
+  if (!selDay) selDay = today;
+  const { y, m } = monthView;
+  const byDay = {};
+  allEvents(now).forEach((e) => { (byDay[e.date] = byDay[e.date] || []).push(e); });
+
+  const head = el('div', 'cal-mhead');
+  head.append(el('h3', 'cal-mtitle', MONTHS[m] + ' ' + y),
+    button('btn-ghost cal-navbtn', '‹', () => shiftMonth(-1), 'Vorheriger Monat', 'cal-prev'),
+    button('btn-ghost cal-navbtn', '›', () => shiftMonth(1), 'Nächster Monat', 'cal-next'),
+    button('btn-gold-s', 'Heute', () => goToday(now), 'Heute anzeigen', 'cal-today'));
+
+  const grid = el('div', 'cal-grid');
+  ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach((w) => grid.append(el('span', 'cal-wd', w)));
+  const offset = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 6) % 7; // Montag ist die erste Spalte
+  const days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  for (let i = 0; i < offset; i++) grid.append(el('span', 'cal-empty'));
+  for (let d = 1; d <= days; d++) {
+    const iso = isoOf(y, m, d);
+    const evs = byDay[iso] || [];
+    const b = el('button', 'cal-day');
+    b.type = 'button';
+    b.dataset.fk = 'cal-' + iso;
+    if (iso === today) b.classList.add('is-today');
+    if (iso === selDay) b.classList.add('is-sel');
+    b.setAttribute('aria-pressed', iso === selDay ? 'true' : 'false');
+    b.setAttribute('aria-label', d + '. ' + MONTHS[m] + (evs.length ? ', ' + evs.length + ' Termine' : ''));
+    const dots = el('span', 'cal-dots');
+    evs.slice(0, 3).forEach((e) => dots.append(el('span', 'cal-dot c' + calIndex(e.cal))));
+    b.append(el('span', 'cal-num', String(d)), dots);
+    b.addEventListener('click', () => { selDay = iso; keepFocus(() => renderCalMonth(new Date())); });
+    grid.append(b);
+  }
+
+  const [sy, sm, sd] = selDay.split('-').map(Number);
+  const wd = DAYS[new Date(Date.UTC(sy, sm - 1, sd)).getUTCDay()];
+  const list = el('div', 'cal-dayev');
+  list.append(el('h4', 'cal-dayh', wd + ', ' + sd + '. ' + MONTHS[sm - 1]));
+  const dayEvs = (byDay[selDay] || []).slice().sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  if (!dayEvs.length) list.append(el('div', 'empty', 'Keine Termine.'));
+  dayEvs.forEach((e) => {
+    const row = el('div', 'cal-ev');
+    row.append(el('span', 'cal-bar c' + calIndex(e.cal)));
+    const col = el('span', 'col grow');
+    col.append(el('span', 'ev-title', e.title), el('span', 'ev-when', e.cal || ''));
+    row.append(col, el('span', 'ev-when cal-time', e.time ? e.time + ' Uhr' : 'Ganztägig'));
+    list.append(row);
+  });
+  root.replaceChildren(head, grid, list);
+}
+
 // ---- Aufklappen: eine Kachel wird gross, die anderen rutschen zur Seite (verdraengen) -----------------
 // Nur Ansicht, pro Geraet gespeichert, nie synchronisiert. Die Kachel steht im Attribut data-open von #day.
-const EXPANDABLE = ['tile-cal', 'tile-shop', 'tile-today', 'tile-tasks', 'tile-bus'];
+const EXPANDABLE = ['tile-cal', 'tile-shop', 'tile-today', 'tile-tasks'];
 const OPEN_KEY = 'wohnungs-cockpit.open';
 let openTile = null;
 try { const v = localStorage.getItem(OPEN_KEY); if (EXPANDABLE.includes(v)) openTile = v; } catch (e) { /* ignorieren */ }
@@ -470,6 +556,10 @@ function expandIcon(on) {
 
 function applyOpenTile() {
   $('day').dataset.open = openTile || '';
+  const calOpen = openTile === 'tile-cal';
+  $('cal-top').hidden = calOpen;
+  $('btn-cal-all').hidden = calOpen;
+  renderCalMonth(new Date());
   EXPANDABLE.forEach((id) => {
     const on = id === openTile;
     const tile = $(id);

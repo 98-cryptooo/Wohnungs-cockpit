@@ -28,6 +28,7 @@ Stand: 17.11.2026. Die ausführliche Projektdoku mit allen Revisionen und Entsch
 ## Revisionen
 | Version | Datum | Änderung |
 | --- | --- | --- |
+| 2.10 | 18.11.2026 | Diese Woche in die Mitte unter den Kalender, Einkauf rechts über die ganze Höhe. Bus ohne Vergrößern. Kalender aufgeklappt als Monatsansicht: Monat wechseln, Tag wählen, Heute-Knopf, Termine des Tages darunter. Service Worker v22. |
 | 2.9 | 18.11.2026 | Versionsnummer in den Einstellungen sichtbar. Jede Änderung bekommt jetzt eine Nummer und einen Git-Tag (vX.Y), alte Stände lassen sich damit anspringen. Frühere Commits sind nachträglich getaggt (v2.0 bis v2.8, v2.6.1 für den Fix). Service Worker v21. |
 | 2.8 | 18.11.2026 | Aufklappen: jede Kachel hat einen Knopf zum Vergrößern. Die offene Kachel wird größer, die anderen rutschen zur Seite (Querformat), im Hochformat über die ganze Breite. Auswahl pro Gerät gespeichert. Service Worker v20. |
 | 2.7 | 18.11.2026 | Bus-Kachel links unter der Uhr, Abfahrten wieder untereinander. Kalender im Querformat über die ganze Mitte. Heute zu tun unten links. Service Worker v19. |
