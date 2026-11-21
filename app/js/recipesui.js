@@ -4,10 +4,11 @@
 import { data, write, newId } from './state.js';
 import { el, button, icon } from './util.js';
 import { askConfirm } from './confirm.js';
-import { cookRecipe, rebuy } from './cook.js';
+import { cookRecipe } from './cook.js';
 import { openOverlay, closeOverlay } from './render.js';
 import { splitAmt, importFromUrl, ocrImages, fromText, findUrl } from './recipeimport.js';
 import { isMeal } from './meals.js';
+import { shopRecipes } from './mealsui.js';
 
 const $ = (id) => document.getElementById(id);
 export const DEFAULT_CATS = ['Hauptgericht', 'Pasta', 'Suppe', 'Salat', 'Frühstück', 'Backen', 'Dessert', 'Snack'];
@@ -46,7 +47,7 @@ export function renderCollection(body) {
     const edit = button('del', null, () => openOverlay('rec:' + r.id), 'Bearbeiten: ' + r.name, 'rc-edit-' + r.id);
     edit.append(icon('edit', 18));
     row.append(star, col, edit,
-      button('btn-ghost', 'Einkaufen', () => rebuy(r.id), 'Zutaten einkaufen: ' + r.name, 'rebuy-' + r.id),
+      button('btn-ghost', 'Einkaufen', () => shopRecipes([r]), 'Fehlende Zutaten einkaufen: ' + r.name, 'rebuy-' + r.id),
       button('btn-gold-s', 'Kochen', () => cookRecipe(r.id), 'Kochen: ' + r.name, 'cooks-' + r.id));
     return row;
   });
@@ -165,7 +166,7 @@ export function renderRecipeEditor(body, id) {
     foot.append(button('btn-link btn-danger', 'Löschen', async () => {
       if (!(await askConfirm('Rezept "' + x.name + '" wirklich löschen? Es verschwindet auch aus dem Essensplan und auf dem Handy.', 'Rezept löschen'))) return;
       write('recipes', (l) => l.filter((r) => String(r.id) !== String(x.id)));
-      write('cats', (l) => l.filter((c) => !(isMeal(c) && String(c.rid) === String(x.id))));
+      write('cats', (l) => l.filter((c) => !(isMeal(c) && String(c.rid) === String(x.id)) && c.id !== 'rec-' + x.id));
       closeOverlay();
     }, 'Rezept löschen', 'rec-del'));
   }
@@ -173,6 +174,9 @@ export function renderRecipeEditor(body, id) {
     button('btn-gold-s', 'Speichern', () => {
       const name = f.name.value.trim().slice(0, 60);
       if (!name) { msg.textContent = 'Bitte einen Namen eingeben.'; f.name.focus(); return; }
+      const rawUrl = f.url.value.trim();
+      if (rawUrl && !/^https?:\/\//i.test(rawUrl) && /^[\w-]+(\.[\w-]+)+/.test(rawUrl)) f.url.value = 'https://' + rawUrl;
+      if (f.url.value.trim() && !findUrl(f.url.value)) { msg.textContent = 'Der Link sieht nicht richtig aus. Bitte prüfen oder leer lassen.'; f.url.focus(); return; }
       const val = {
         name, cat: f.cat.value.trim().slice(0, 30), servings: Math.min(50, Math.max(1, Math.round(Number(f.servings.value) || 1))),
         time: Math.min(1440, Math.max(0, Math.round(Number(f.time.value) || 0))), ingredients: parseIngredients(f.ingredients.value),

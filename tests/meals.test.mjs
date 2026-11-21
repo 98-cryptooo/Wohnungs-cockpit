@@ -1,7 +1,7 @@
 // Tests fuer den Essensplan (fiktive Rezepte).
 //   node tests/meals.test.mjs
 import assert from 'node:assert/strict';
-import { mealId, parseMealId, planDays, mealsOn, setMeal, plannedRecipes, missingIngredients, shoppingFor, isMeal } from '../app/js/meals.js';
+import { isStaleMeal, mealId, parseMealId, planDays, mealsOn, setMeal, plannedRecipes, missingIngredients, shoppingFor, isMeal } from '../app/js/meals.js';
 import { normalizeEntry } from '../app/js/core.js';
 
 const tests = [];
@@ -44,12 +44,15 @@ test('Geplante Rezepte: jedes nur einmal, geloeschte Rezepte fallen weg', () => 
   assert.deepEqual(recs.map((r) => r.id), ['r1', 'r2']);
 });
 
-test('Zutaten: was schon auf der Liste steht (offen oder abgehakt), kommt nicht doppelt', () => {
-  const shop = [{ t: 'Kokosmilch', r: 'r1', done: false, at: 1 }, { t: 'Hokkaido', r: 'r1', done: true, at: 2 }, { t: 'Spaghetti', done: false, at: 3 }];
-  assert.deepEqual(missingIngredients(shop, soup).map((z) => z.t), []);
+test('Zutaten: offen oder kuerzlich abgehakt kommt nicht doppelt, alt abgehakt schon', () => {
+  const now = Date.parse('2026-11-22T12:00:00Z');
+  const shop = [{ t: 'Kokosmilch', r: 'r1', done: false, at: 1 }, { t: 'Hokkaido', r: 'r1', done: true, doneAt: now - 864e5, at: 2 }, { t: 'Spaghetti', done: false, at: 3 }];
+  assert.deepEqual(missingIngredients(shop, soup, now).map((z) => z.t), []);
+  const old = [{ t: 'Hokkaido', r: 'r1', done: true, doneAt: '2026-11-10T10:00:00Z', at: 2 }, { t: 'Kokosmilch', r: 'r1', done: true, at: 4 }];
+  assert.deepEqual(missingIngredients(old, soup, now).map((z) => z.t), ['Hokkaido', 'Kokosmilch']);
   assert.deepEqual(missingIngredients([], soup).map((z) => z.t), ['Hokkaido', 'Kokosmilch']);
   // Spaghetti ohne Rezeptbezug zaehlt nicht als "vom Rezept schon da"
-  assert.deepEqual(missingIngredients(shop, pasta).map((z) => z.t), ['Spaghetti']);
+  assert.deepEqual(missingIngredients(shop, pasta, now).map((z) => z.t), ['Spaghetti']);
 });
 
 test('Einkaufsposten mit Rezept-ID und Gruppe, eindeutige at', () => {
@@ -62,6 +65,12 @@ test('Einkaufsposten mit Rezept-ID und Gruppe, eindeutige at', () => {
 test('Mahlzeiten ueberstehen die Normalisierung im Sync (rid bleibt)', () => {
   const e = normalizeEntry('cats', { id: 'meal-2026-11-24-abend', rid: 'r1', done: false }, () => 0);
   assert.equal(e.rid, 'r1');
+});
+
+test('Alte Plan-Eintraege (ueber 30 Tage) werden als veraltet erkannt, andere cats nie', () => {
+  assert.equal(isStaleMeal({ id: 'meal-2026-10-23-abend' }, '2026-11-22'), false);
+  assert.equal(isStaleMeal({ id: 'meal-2026-10-22-abend' }, '2026-11-22'), true);
+  assert.equal(isStaleMeal({ id: 'leave-licht' }, '2026-11-22'), false);
 });
 
 let ok = 0;

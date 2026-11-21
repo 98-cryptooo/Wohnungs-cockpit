@@ -104,6 +104,42 @@ test('Taegliche Serie ueber Jahre endet nicht vorzeitig', () => {
   assert.deepEqual(dates(evs), ['2026-11-22', '2026-11-23']);
 });
 
+test('Review 2: Serie in fremder Zone springt auf den richtigen Berliner Wochentag', () => {
+  const evs = parseICS(cal(['UID:z1', 'DTSTART;TZID=America/New_York:20261102T190000', 'RRULE:FREQ=WEEKLY;BYDAY=MO', 'SUMMARY:Call']), 'X', '2026-11-09', '2026-11-15');
+  assert.deepEqual(dates(evs), ['2026-11-10 01:00']);
+});
+
+test('Review 2: UTC-Serie aus dem Sommer steht im Winter eine Stunde frueher', () => {
+  const evs = parseICS(cal(['UID:z2', 'DTSTART:20260706T080000Z', 'DTEND:20260706T090000Z', 'RRULE:FREQ=WEEKLY', 'SUMMARY:Standup']), 'X', '2026-11-23', '2026-11-29');
+  assert.deepEqual(evs.map((e) => [e.date, e.time, e.end]), [['2026-11-23', '09:00', '10:00']]);
+});
+
+test('Review 3: taeglich nur werktags (BYDAY bei DAILY)', () => {
+  assert.deepEqual(occurrences('2026-11-20', 'FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR', '2026-11-24'), ['2026-11-20', '2026-11-23', '2026-11-24']);
+});
+
+test('Review 3: letzter Werktag im Monat (BYSETPOS=-1)', () => {
+  assert.deepEqual(occurrences('2026-11-30', 'FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR;BYSETPOS=-1', '2027-01-31'), ['2026-11-30', '2026-12-31', '2027-01-29']);
+});
+
+test('Review 3: Freitag, der 13. ist eine Schnittmenge', () => {
+  assert.deepEqual(occurrences('2026-02-13', 'FREQ=MONTHLY;BYDAY=FR;BYMONTHDAY=13', '2026-12-31'), ['2026-02-13', '2026-03-13', '2026-11-13']);
+});
+
+test('Review 3: unbekannte Regelteile zeigen nur den ersten Termin', () => {
+  assert.deepEqual(occurrences('2026-11-02', 'FREQ=YEARLY;BYWEEKNO=20', '2030-12-31'), ['2026-11-02']);
+});
+
+test('Review 4: mehrtaegiger Termin, der vor dem Fenster beginnt, erscheint', () => {
+  const evs = parseICS(cal(['UID:m1', 'DTSTART;TZID=Europe/Berlin:20261122T100000', 'DTEND;TZID=Europe/Berlin:20261125T100000', 'SUMMARY:Messe']), 'X', '2026-11-23', '2026-11-30');
+  assert.deepEqual(evs.map((e) => [e.date, e.end]), [['2026-11-22', '2026-11-25T10:00']]);
+});
+
+test('Review 5: UNTIL mit Uhrzeit schliesst einen spaeteren Termin am selben Tag aus', () => {
+  const evs = parseICS(cal(['UID:u1', 'DTSTART;TZID=Europe/Berlin:20261117T100000', 'RRULE:FREQ=WEEKLY;UNTIL=20261124T080000Z', 'SUMMARY:Kurs']), 'X', '2026-11-16', '2026-11-30');
+  assert.deepEqual(dates(evs), ['2026-11-17 10:00']);
+});
+
 let ok = 0;
 for (const [name, fn] of tests) {
   try { fn(); ok++; } catch (e) { console.error('FEHLER: ' + name + '\n  ' + e.message); }

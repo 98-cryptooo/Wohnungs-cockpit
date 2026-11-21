@@ -51,10 +51,14 @@ export function plannedRecipes(cats, recipes, days) {
 
 const norm = (t) => String(t || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
+// Abgehakt vor hoechstens so vielen Tagen zaehlt als "schon gekauft" (aelteres ist vermutlich aufgebraucht)
+export const BOUGHT_DAYS = 3;
+const doneMs = (v) => (typeof v === 'number' ? v : Date.parse(v));
 // Zutaten eines Rezepts, die noch nicht auf der Einkaufsliste stehen (gleicher Name, gleiches Rezept).
-// Abgehakte zaehlen als vorhanden: sie sind fuer dieses Rezept schon gekauft.
-export function missingIngredients(shop, rec) {
-  const open = new Set(shop.filter((i) => itemBelongsTo(i, rec)).map((i) => norm(i.t)));
+// Offene zaehlen immer als vorhanden, abgehakte nur, wenn sie kuerzlich gekauft wurden.
+export function missingIngredients(shop, rec, nowMs = Date.now()) {
+  const fresh = (i) => !i.done || (Number.isFinite(doneMs(i.doneAt)) && nowMs - doneMs(i.doneAt) <= BOUGHT_DAYS * 864e5);
+  const open = new Set(shop.filter((i) => itemBelongsTo(i, rec) && fresh(i)).map((i) => norm(i.t)));
   const seen = new Set();
   return (rec.ingredients || []).filter((z) => {
     const k = norm(z.t);
@@ -65,10 +69,16 @@ export function missingIngredients(shop, rec) {
 }
 
 // Neue Einkaufsposten fuer alle geplanten Rezepte. gen() liefert eindeutige at-Werte.
-export function shoppingFor(shop, recs, gen) {
+export function shoppingFor(shop, recs, gen, nowMs = Date.now()) {
   const items = [];
-  recs.forEach((r) => missingIngredients(shop, r).forEach((z) => {
+  recs.forEach((r) => missingIngredients(shop, r, nowMs).forEach((z) => {
     items.push({ t: z.t, q: z.q || undefined, g: r.name, r: String(r.id), done: false, at: gen() });
   }));
   return items;
+}
+
+// Eintraege, deren Tag laenger als keepDays vorbei ist (zum Aufraeumen per Loeschmarke)
+export function isStaleMeal(c, today, keepDays = 30) {
+  const p = parseMealId(c && c.id);
+  return !!p && p.date < addDays(today, -keepDays);
 }

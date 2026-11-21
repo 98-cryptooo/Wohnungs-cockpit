@@ -106,21 +106,25 @@ export function renderMealPicker(body, key) {
   body.replaceChildren(...parts);
 }
 
-// ---- Zutaten der geplanten Tage in den Einkauf ---------------------------------------------------
-async function shopPlanned() {
-  const today = berlinNow(new Date()).date;
-  const focus = !!$('tile-meals').closest('#focus-card');
-  const recs = plannedRecipes(data.cats, data.recipes, planDays(today, focus ? DAYS_FOCUS : DAYS_GRID));
+// ---- Zutaten in den Einkauf (Essensplan und Sammlung) ---------------------------------------------
+// Erst fragen, dann im write() neu rechnen: kam waehrenddessen etwas per Sync dazu, entsteht nichts doppelt.
+export async function shopRecipes(recs) {
   if (!recs.length) { await askConfirm('Für die nächsten Tage ist noch kein Rezept geplant.', 'OK'); return; }
-  let n = 0;
-  const items = shoppingFor(data.shop, recs, () => newId() + n++);
-  if (!items.length) { await askConfirm('Alle Zutaten der geplanten Rezepte stehen schon auf der Einkaufsliste.', 'OK'); return; }
-  const used = new Set(items.map((i) => i.r));
-  const msg = (items.length === 1 ? '1 Zutat' : items.length + ' Zutaten') + ' aus ' + (used.size === 1 ? '1 Rezept' : used.size + ' Rezepten') + ' in den Einkauf legen?';
+  const preview = shoppingFor(data.shop, recs, () => 0);
+  if (!preview.length) { await askConfirm('Alle Zutaten stehen schon auf der Einkaufsliste oder wurden in den letzten Tagen gekauft.', 'OK'); return; }
+  const used = new Set(preview.map((i) => i.r));
+  const msg = (preview.length === 1 ? '1 Zutat' : preview.length + ' Zutaten') + ' aus ' + (used.size === 1 ? '1 Rezept' : used.size + ' Rezepten') + ' in den Einkauf legen?';
   if (!(await askConfirm(msg, 'Einkaufen'))) return;
-  write('shop', (l) => l.concat(items));
+  let n = 0;
+  write('shop', (l) => l.concat(shoppingFor(l, recs, () => newId() + n++)));
   // Rezepte aus der Sammlung erscheinen damit auch als Gruppe im Einkauf
   write('recipes', (l) => l.map((r) => { if (used.has(String(r.id)) && r.status === 'saved') r.status = 'list'; return r; }));
+}
+
+function shopPlanned() {
+  const today = berlinNow(new Date()).date;
+  const focus = !!$('tile-meals').closest('#focus-card');
+  return shopRecipes(plannedRecipes(data.cats, data.recipes, planDays(today, focus ? DAYS_FOCUS : DAYS_GRID)));
 }
 
 export function initMeals() {

@@ -12,6 +12,8 @@ import { settings } from './js/settings.js';
 import { startLive, refreshLive } from './js/live.js';
 import { initReminders, checkReminders } from './js/reminders.js';
 import { renderMeals, initMeals } from './js/mealsui.js';
+import { isStaleMeal } from './js/meals.js';
+import { berlinNow } from './js/calendar.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -82,6 +84,9 @@ function onTick(force) {
 // Geprueft nach jedem Abgleich der Aufgaben und einmal pro Minute.
 function purgeNotes() {
   if (!DEMO && syncActive() && data.tasks.some((x) => x.note)) write('tasks', (l) => l.filter((x) => !x.note));
+  // Essensplan: Tage, die mehr als 30 Tage vorbei sind, aufraeumen (sonst waechst die Liste um rund 700 Eintraege im Jahr)
+  const today = berlinNow(new Date()).date;
+  if (!DEMO && syncActive() && data.cats.some((c) => isStaleMeal(c, today))) write('cats', (l) => l.filter((c) => !isStaleMeal(c, today)));
 }
 
 subscribe((topic) => {
