@@ -150,3 +150,26 @@ tasks: {
 }
 ```
 Größe: 20 Verlaufseinträge sind etwa 1 KB, die Grenze liegt bei 20 KB pro Eintrag.
+
+## 4. Stand nach Version 3.5 (22.11.2026)
+
+| Befund | Stand |
+| --- | --- |
+| S1 Löschen ohne Rückfrage | behoben in 3.1 |
+| S2 Woche neu starten setzt alles zurück | entfällt, Knopf ersetzt durch Planen (3.1) |
+| S3 Heute-Einträge bleiben stehen | behoben in 3.1, erledigte nur am selben Tag |
+| S4 verschobene Serientermine doppelt | behoben in 3.2 |
+| S5 monatliche Serien mit Wochentag | behoben in 3.2 |
+| S6 fremde Zeitzonen | behoben in 3.2 |
+| S7 mehrtägige Termine mit Uhrzeit, Sonderzeichen | behoben in 3.2 |
+| S8 Repo und Server ungleich | geprüft: waren gleich, nur die Doku war ungenau. Jetzt Version 3 |
+| S9 Namen fest im Code | bewusst offen gelassen, siehe unten |
+| S10 Sync pro Eintrag statt pro Feld | gemildert: Dialoge schreiben nur geänderte Felder (3.1, 3.4) |
+| S11 Löschmarken verfallen nach 30 Tagen | offen, selten |
+| S12 tote Reste | Katzen- und Tierarzt-Reste entfernt (3.5). Listen inbox-* bleiben auf dem Server erlaubt, schaden nicht |
+
+**Warum S9 offen bleibt:** Die Namen sind nicht nur Beschriftung, sondern stehen als Wert in jeder Aufgabe (`who`) und im Verlauf (`log.by`). Sie aus dem Code zu nehmen hieße, alle gespeicherten Aufgaben umzuschreiben. Das Risiko für die Daten ist größer als der Nutzen, zumal die Namen schon in der öffentlichen Git-Historie stehen. Ein späterer Schritt könnte neutrale Schlüssel einführen und die Anzeige über die Geräte-Einstellungen machen.
+
+**Plan erledigt:** Putzplan und Erinnerungen (3.1), Kalender (3.2), Essensplan (3.3), Rezepte (3.4), Aufräumen (3.5).
+
+**Nächste Kandidaten:** Wochenansicht im Kalender, Push-Nachrichten aufs Handy, Echtzeit-Sync statt 30 Sekunden.

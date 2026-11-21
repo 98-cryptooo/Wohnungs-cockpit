@@ -285,6 +285,7 @@ function fillTasks(items, ids, now) {
   $(ids.empty).hidden = rows.length > 0;
 }
 
+let doneShown = 30;
 export function renderTasks(nowDate) {
   const now = berlinNow(nowDate || new Date());
   const tasks = data.tasks.filter((x) => !x.note);
@@ -299,7 +300,8 @@ export function renderTasks(nowDate) {
   $('task-empty').textContent = week.length ? 'Alles erledigt.' : 'Noch keine Aufgaben. Unten eine hinzufügen oder planen.';
   setPreview('pv-tasks', weekOpen.length ? (over ? over + ' überfällig · ' : '') + dueNow + ' offen' + (weekOpen[0] ? ' · ' + weekOpen[0].text : '') : (week.length ? 'Alles erledigt' : 'Keine Aufgaben'));
   // Erledigt (nur in der grossen Ansicht sichtbar): einmalige Aufgaben, neueste zuerst
-  const done = doneOnce(tasks).slice(0, 30);
+  const allDone = doneOnce(tasks);
+  const done = allDone.slice(0, doneShown);
   const doneRows = done.map((x) => {
     const row = el('div', 'task');
     row.append(taskCheck(x, taskState(x, now), 'done-' + x.id));
@@ -308,6 +310,9 @@ export function renderTasks(nowDate) {
     row.append(del);
     return row;
   });
+  if (allDone.length > done.length) {
+    doneRows.push(button('btn-link', 'Ältere zeigen (' + (allDone.length - done.length) + ')', () => { doneShown += 30; renderTasks(); }, 'Ältere erledigte Aufgaben zeigen', 'done-more'));
+  }
   $('task-done-list').replaceChildren(...doneRows);
   $('task-done').hidden = !doneRows.length;
   // Heute zu tun: today-Eintraege wie bisher, dazu alles, was heute faellig oder ueberfaellig ist
@@ -319,8 +324,7 @@ export function renderTasks(nowDate) {
   scheduleFit();
 }
 
-// Notizen (note: true) gibt es seit 3.1 nicht mehr in der Oberflaeche. Alte Eintraege bleiben in den Daten,
-// werden aber nirgends angezeigt (alle Aufgabenlisten filtern note heraus).
+// Notizen (note: true) gibt es seit 3.1 nicht mehr. Seit 3.5 loescht app.js (purgeNotes) alte Eintraege endgueltig.
 
 // Eingabe fuer "Heute zu tun": gleiche Liste tasks, Eintrag bekommt today: true.
 export function initTodayForm() {

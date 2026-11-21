@@ -18,23 +18,16 @@ export function newId() {
   return Date.now() * 1000 + (seq++ % 1000);
 }
 
-// Katzen: Der Haken gilt nur fuer den "Katzentag". Er wechselt um 6 Uhr morgens.
-const pad2 = (n) => String(n).padStart(2, '0');
-export function catDay(now) {
-  const d = new Date((now || new Date()).getTime() - 6 * 3600000);
-  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
-}
-export function catDone(c, now) { return !!c.done && c.doneDay === catDay(now); }
-const CAT_IDS = ['morgens', 'abends', 'klo'];
-const defaultCats = () => CAT_IDS.map((id) => ({ id, done: false, ts: 0 }));
-const makeEmpty = () => ({ shop: [], recipes: [], tasks: [], cats: defaultCats() });
+// Katzen-Kachel gibt es seit 2.1 nicht mehr. Alte Eintraege morgens/abends/klo in cats bleiben unangetastet,
+// werden aber nicht mehr angelegt.
+const makeEmpty = () => ({ shop: [], recipes: [], tasks: [], cats: [] });
 
 // ---------------------------------------------------------------------------
 // Beispieldaten, nur im Demo-Modus (Format wie in CLAUDE.md)
 // shop:    {t, done, at, doneAt?, q?, g?, u?, r?}
 // recipes: {id, name, url, steps[], servings, yieldText, time, image, ingredients[{q,t}], status, at}
 // tasks:   {id, text, who, done}
-// cats:    {id, done}
+// cats:    {id, done} fuer leave-* und rec-*, Essensplan {id: 'meal-...', rid}
 // ---------------------------------------------------------------------------
 function makeSample() {
   const BASE = 1700000000000;
@@ -101,9 +94,7 @@ function makeSample() {
     { id: 5, text: 'Kühlschrank aufräumen', who: 'Beide', done: false }
   ].map((x) => Object.assign({ ts: 0 }, x));
 
-  const cats = defaultCats();
-  cats[0].done = true;
-  cats[0].doneDay = catDay(new Date());
+  const cats = [];
 
   return { shop, recipes, tasks, cats };
 }
@@ -133,9 +124,6 @@ export function calendarRaw(now) {
   });
 }
 
-// Naechster Termin der Katzenkachel als Beispiel (neutral), Tage ab heute und Uhrzeit.
-const SAMPLE_VET = { title: 'Nächster Termin: Besuch', offsetDays: 1, time: '10:30' };
-export const getVet = () => (DEMO ? SAMPLE_VET : null);
 
 // Haltestelle als Beispiel (fiktiv): Linie, Richtung, Takt in Minuten, Versatz, Metro-Optik ja/nein.
 export const DEMO_STOP_NAME = 'Beispielstr.';
@@ -187,7 +175,6 @@ export function subscribe(fn) { subscribers.add(fn); return () => subscribers.de
 function emit(topic) { subscribers.forEach((fn) => fn(topic)); }
 
 const initial = load();
-CAT_IDS.forEach((id) => { if (!(initial.cats || []).some((c) => c && c.id === id)) (initial.cats = initial.cats || []).push({ id, done: false, ts: 0 }); });
 export const store = createStore({ initial, persist, clock, emit, gen: () => newId() });
 export const data = store.data;
 
@@ -215,6 +202,8 @@ export const write = store.write;
 // Der Sync meldet sich hier an: setWriteHook(({list, changed, removed}) => ...). Im Demo-Modus nie.
 export function setWriteHook(fn) { if (!DEMO) store.onWrite = fn; }
 export const applyRemote = store.applyRemote;
+// Laeuft der Sync (hat sich per setWriteHook angemeldet)? Dann gehen Aenderungen sicher auch an den Server.
+export const syncActive = () => !!store.onWrite;
 export function resetAll() { if (!DEMO) store.reset(makeEmpty()); }
 
 export function setUi(patch) {

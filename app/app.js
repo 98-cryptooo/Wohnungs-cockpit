@@ -1,6 +1,6 @@
 // Einstieg: verdrahtet Zustand, Anzeige, Uhr, Skalierung, Wake Lock und Service Worker.
 import './js/household.js'; // zuerst: entfernt #join aus der Adresse, bevor irgendetwas anderes laeuft
-import { subscribe, ui, DEMO } from './js/state.js';
+import { subscribe, ui, DEMO, data, write, syncActive } from './js/state.js';
 import { keepFocus, renderClock, renderCalTop, renderWeather, renderShop, renderTasks, renderBus, renderLeaveButton, renderOverlay, closeOverlay, initTiles, initExpand, isFocusOpen, closeFocus } from './js/render.js';
 import { renderCook, initCook, updateTimerView, isCookOpen, closeCook } from './js/cook.js';
 import { isNight, renderNight, peek } from './js/night.js';
@@ -74,6 +74,14 @@ function onTick(force) {
     applyMode(now);
   });
   checkReminders(now);
+  purgeNotes();
+}
+
+// Notizen gibt es seit 3.1 nicht mehr. Auf Wunsch endgueltig loeschen (Loeschmarken, damit sie ueberall verschwinden).
+// Nur wenn der Sync laeuft, sonst blieben die Loeschmarken auf dem Geraet und der Server behielte die Notizen.
+// Geprueft nach jedem Abgleich der Aufgaben und einmal pro Minute.
+function purgeNotes() {
+  if (!DEMO && syncActive() && data.tasks.some((x) => x.note)) write('tasks', (l) => l.filter((x) => !x.note));
 }
 
 subscribe((topic) => {
@@ -83,7 +91,7 @@ subscribe((topic) => {
       case 'shop': renderShop(); break;
       case 'recipes': renderShop(); renderMeals(now); applyMode(now); break;
       case 'cats': renderMeals(now); renderShop(); renderLeaveButton(); applyMode(now); break;
-      case 'tasks': renderTasks(); checkReminders(now); break;
+      case 'tasks': purgeNotes(); renderTasks(); checkReminders(now); break;
       case 'weather': renderWeather(now); applyMode(now); break;
       case 'transit': renderBus(now); break;
       case 'cal': renderCalTop(now); applyMode(now); break;
