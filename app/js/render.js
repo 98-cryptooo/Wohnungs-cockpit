@@ -11,6 +11,7 @@ import { buildDepartures, getTransitState, usableDepartures, busMessage } from '
 import { standText } from './poll.js';
 import { settings } from './settings.js';
 import { renderMealPicker } from './mealsui.js';
+import { renderCollection, renderRecipeEditor } from './recipesui.js';
 import { WHO, EVERY_OPTIONS, REMIND_OPTIONS, isRecurring, newTask, applyPlan, completeRecurring, undoLast, toggleOnce, taskState, isForToday, sortTasks, doneOnce, everyLabel, shortDate, nextDue } from './tasks.js';
 
 const $ = (id) => document.getElementById(id);
@@ -559,11 +560,12 @@ export function renderOverlay(now) {
   if (!kind) { overlayWasOpen = false; builtKind = null; return; }
   const body = $('ov-body');
   // Aufgaben-Dialoge nur beim Oeffnen bauen, sonst verliert der Minutentakt die Eingaben
-  if (kind.startsWith('task:') || kind.startsWith('who:') || kind.startsWith('meal:')) {
+  if (kind.startsWith('task:') || kind.startsWith('who:') || kind.startsWith('meal:') || kind.startsWith('rec:')) {
     if (builtKind !== kind) {
       builtKind = kind;
       if (kind.startsWith('who:')) renderWho(body, kind.slice(4));
       else if (kind.startsWith('meal:')) renderMealPicker(body, kind.slice(5));
+      else if (kind.startsWith('rec:')) renderRecipeEditor(body, kind.slice(4));
       else renderPlan(body, kind.slice(5));
     }
   } else if (kind === 'cal') {
@@ -578,20 +580,7 @@ export function renderOverlay(now) {
   } else if (kind === 'leave') {
     renderLeave(body);
   } else {
-    $('ov-title').textContent = 'Rezeptsammlung';
-    const saved = data.recipes.filter((r) => r.status === 'saved');
-    const rows = saved.map((r) => {
-      const row = el('div', 'ov-recipe');
-      const col = el('span', 'col grow');
-      const meta = r.servings + ' ' + (r.yieldText || 'Portionen') + (r.time ? ' · ' + r.time + ' Min' : '') + ' · ' + (r.steps.length ? r.steps.length + ' Schritte' : 'ohne Anleitung');
-      col.append(el('span', 'name', r.name), el('span', 'ev-when', meta));
-      row.append(col,
-        button('btn-ghost', 'Wieder einkaufen', () => rebuy(r.id), 'Wieder einkaufen: ' + r.name, 'rebuy-' + r.id),
-        button('btn-gold-s', 'Kochen', () => cookRecipe(r.id), 'Kochen: ' + r.name, 'cooks-' + r.id));
-      return row;
-    });
-    if (!rows.length) rows.push(el('div', 'empty', 'Noch keine Rezepte in der Sammlung.'));
-    body.replaceChildren(...rows);
+    renderCollection(body);
   }
   if (!overlayWasOpen) {
     overlayWasOpen = true;

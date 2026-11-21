@@ -102,7 +102,7 @@ export function renderMealPicker(body, key) {
   };
   search.addEventListener('input', draw);
   draw();
-  parts.push(search, list);
+  parts.push(search, list, button('btn-ghost pick-new', 'Neues Rezept anlegen', () => openOverlay('rec:new'), 'Neues Rezept anlegen oder importieren', 'pick-new'));
   body.replaceChildren(...parts);
 }
 
