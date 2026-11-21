@@ -22,7 +22,7 @@
 
   <main id="day" class="day">
 
-    <!-- Linke Spalte: Uhr, Bus, Heute zu tun -->
+    <!-- Linke Spalte: Uhr, Essen, Bus, Heute zu tun -->
     <div class="stack stack-a">
 
     <!-- Uhr, Heute, Wetter -->
@@ -51,6 +51,17 @@
         </div>
         <div id="weather-note" class="hint" hidden></div>
       </div>
+    </section>
+
+    <!-- Essen: Plan fuer die naechsten Tage (Eintraege in cats mit id meal-...) -->
+    <section id="tile-meals" class="tile tile-meals" aria-label="Essen">
+      <div class="tile-head">
+        <h2 class="h"><button type="button" class="min-btn"><span class="chev" aria-hidden="true"></span><span id="meals-title" class="min-title">Essen</span></button></h2>
+        <button id="btn-meals-shop" type="button" class="btn-link">Zutaten einkaufen</button>
+      </div>
+      <button id="pv-meals" type="button" class="preview"></button>
+      <div id="meal-list" class="scroll meal-list"></div>
+      <span class="hint">Tag antippen: Rezept wählen · Sonne: Mittagessen dazu</span>
     </section>
 
     <!-- Bus -->
@@ -298,7 +309,7 @@
 
           <button id="cfg-clear" type="button" class="btn-ghost">Orts-Einstellungen löschen</button>
         </section>
-        <p class="set-msg" id="app-version">Version 3.2 (22.11.2026)</p>
+        <p class="set-msg" id="app-version">Version 3.3 (22.11.2026)</p>
       </div>
     </div>
   </div>

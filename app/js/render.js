@@ -10,6 +10,7 @@ import { buildWeather, demoWeather, getWeatherState, usableWeather, weatherMessa
 import { buildDepartures, getTransitState, usableDepartures, busMessage } from './transit.js';
 import { standText } from './poll.js';
 import { settings } from './settings.js';
+import { renderMealPicker } from './mealsui.js';
 import { WHO, EVERY_OPTIONS, REMIND_OPTIONS, isRecurring, newTask, applyPlan, completeRecurring, undoLast, toggleOnce, taskState, isForToday, sortTasks, doneOnce, everyLabel, shortDate, nextDue } from './tasks.js';
 
 const $ = (id) => document.getElementById(id);
@@ -558,10 +559,12 @@ export function renderOverlay(now) {
   if (!kind) { overlayWasOpen = false; builtKind = null; return; }
   const body = $('ov-body');
   // Aufgaben-Dialoge nur beim Oeffnen bauen, sonst verliert der Minutentakt die Eingaben
-  if (kind.startsWith('task:') || kind.startsWith('who:')) {
+  if (kind.startsWith('task:') || kind.startsWith('who:') || kind.startsWith('meal:')) {
     if (builtKind !== kind) {
       builtKind = kind;
-      if (kind.startsWith('who:')) renderWho(body, kind.slice(4)); else renderPlan(body, kind.slice(5));
+      if (kind.startsWith('who:')) renderWho(body, kind.slice(4));
+      else if (kind.startsWith('meal:')) renderMealPicker(body, kind.slice(5));
+      else renderPlan(body, kind.slice(5));
     }
   } else if (kind === 'cal') {
     $('ov-title').textContent = 'Kalender';
@@ -749,8 +752,8 @@ export function renderCalMonth(now = new Date()) {
 // - Kompakt (is-auto, nur Querformat): reicht der Platz in einer Spalte nicht, zeigt die Kachel mit dem
 //   wenigsten Inhalt von selbst ihre Vorschau. Wird bei jeder Aenderung neu berechnet.
 // - Gross (is-open): die Kachel wandert in die Fokusansicht ueber dem Raster, an ihrem Platz bleibt ein Platzhalter.
-const EXPANDABLE = ['tile-cal', 'tile-shop', 'tile-today', 'tile-tasks'];
-const MINIMIZABLE = ['tile-bus', 'tile-today', 'tile-cal', 'tile-tasks', 'tile-shop'];
+const EXPANDABLE = ['tile-cal', 'tile-shop', 'tile-today', 'tile-tasks', 'tile-meals'];
+const MINIMIZABLE = ['tile-meals', 'tile-bus', 'tile-today', 'tile-cal', 'tile-tasks', 'tile-shop'];
 const MIN_KEY = 'wohnungs-cockpit.min';
 const LANDSCAPE = window.matchMedia('(min-width: 1100px) and (min-height: 700px)');
 let openTile = null;
@@ -763,7 +766,7 @@ try { localStorage.removeItem('wohnungs-cockpit.open'); } catch (e) { /* alter Z
 
 export const isFocusOpen = () => !!openTile;
 
-function setPreview(id, text) {
+export function setPreview(id, text) {
   const n = $(id);
   if (n) n.textContent = text;
 }
