@@ -10,6 +10,7 @@ import { buildWeather, demoWeather, getWeatherState, usableWeather, weatherMessa
 import { buildDepartures, getTransitState, usableDepartures, busMessage } from './transit.js';
 import { standText } from './poll.js';
 import { settings } from './settings.js';
+import { WHO, EVERY_OPTIONS, REMIND_OPTIONS, isRecurring, newTask, applyPlan, completeRecurring, undoLast, toggleOnce, taskState, isForToday, sortTasks, doneOnce, everyLabel, shortDate, nextDue } from './tasks.js';
 
 const $ = (id) => document.getElementById(id);
 const DAYS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -224,80 +225,100 @@ export function renderShop() {
 }
 
 // ---- Aufgaben -------------------------------------------------------------------
-const WHO = ['Rik', 'Melina', 'Beide'];
+// Logik (Wiederholung, Faelligkeit, Verlauf) in tasks.js. Hier nur Anzeige und Bedienung.
 const WHO_CLASS = { Rik: 'who-rik', Melina: 'who-melina', Beide: 'who-beide' };
+const todayNow = () => berlinNow(new Date());
+const findTask = (l, id) => l.find((z) => String(z.id) === String(id));
+
+// Abhaken: wiederkehrend fragt nach der Person, einmalig wechselt nur den Haken
+function tapTask(x) {
+  if (isRecurring(x)) { openOverlay('who:' + x.id); return; }
+  write('tasks', (l) => { const y = findTask(l, x.id); if (y) toggleOnce(y, todayNow().date); });
+}
+
+// Loeschen: Offenes und Wiederkehrendes nur nach Rueckfrage (versehentliches Loeschen vermeiden)
+async function deleteTask(x, what = 'Aufgabe') {
+  const open = isRecurring(x) || !x.done;
+  if (open && !(await askConfirm('"' + x.text + '" wirklich löschen?' + (isRecurring(x) ? ' Der Verlauf geht mit verloren.' : ''), what + ' löschen'))) return false;
+  write('tasks', (l) => l.filter((z) => String(z.id) !== String(x.id)));
+  return true;
+}
+
+function taskCheck(x, st, fk) {
+  const b = el('button', 'check');
+  b.type = 'button';
+  if (isRecurring(x)) b.setAttribute('aria-haspopup', 'dialog');
+  else { b.setAttribute('role', 'checkbox'); b.setAttribute('aria-checked', x.done ? 'true' : 'false'); }
+  b.dataset.fk = fk;
+  const box = el('span', 'box' + (isRecurring(x) ? ' box-round' : '')); box.setAttribute('aria-hidden', 'true');
+  const col = el('span', 'tcol');
+  col.append(el('span', 'label', x.text));
+  const meta = [st.label, isRecurring(x) ? everyLabel(x.every) : ''].filter(Boolean).join(' · ');
+  if (meta) col.append(el('span', 'tmeta k-' + st.kind, meta));
+  b.append(box, col);
+  b.setAttribute('aria-label', x.text + (meta ? ', ' + meta : '') + (isRecurring(x) ? ', antippen und Person wählen' : ''));
+  b.addEventListener('click', () => tapTask(x));
+  return b;
+}
 
 // Zeichnet eine Aufgabenliste (Woche oder Heute). items sind Teilmengen von data.tasks.
-function fillTasks(items, ids) {
+function fillTasks(items, ids, now) {
   const rows = items.map((x) => {
-    const row = el('div', 'task');
-    const chk = checkRow(x.text, '', x.done, () => write('tasks', (l) => { const y = l.find((z) => z.id === x.id); if (y) y.done = !y.done; }), 'task-' + x.id);
-    chk.setAttribute('aria-label', x.text);
-    const who = button('who ' + (WHO_CLASS[x.who] || 'who-beide'), x.who,
-      () => write('tasks', (l) => { const y = l.find((z) => z.id === x.id); if (y) y.who = WHO[(WHO.indexOf(y.who) + 1) % WHO.length]; }),
-      'Zuständig: ' + x.who + '. Tippen zum Wechseln', 'who-' + x.id);
-    const del = button('del', null, () => write('tasks', (l) => l.filter((z) => z.id !== x.id)), 'Aufgabe löschen: ' + x.text, 'del-' + x.id);
+    const st = taskState(x, now);
+    const row = el('div', 'task' + (st.kind === 'overdue' ? ' is-overdue' : ''));
+    row.append(taskCheck(x, st, ids.fk + x.id));
+    if (!isRecurring(x)) {
+      row.append(button('who ' + (WHO_CLASS[x.who] || 'who-beide'), x.who,
+        () => write('tasks', (l) => { const y = findTask(l, x.id); if (y) y.who = WHO[(WHO.indexOf(y.who) + 1) % WHO.length]; }),
+        'Zuständig: ' + x.who + '. Tippen zum Wechseln', ids.fk + 'who-' + x.id));
+    }
+    const edit = button('del', null, () => openOverlay('task:' + x.id), 'Planen und Verlauf: ' + x.text, ids.fk + 'edit-' + x.id);
+    edit.append(icon('edit', 18));
+    const del = button('del del-x', null, () => deleteTask(x), 'Aufgabe löschen: ' + x.text, ids.fk + 'del-' + x.id);
     del.append(icon('close', 16));
-    row.append(chk, who, del);
+    row.append(edit, del);
     return row;
   });
   $(ids.list).replaceChildren(...rows);
   $(ids.empty).hidden = rows.length > 0;
-  if (ids.hideDone) {
-    // Erledigte Aufgaben stehen nicht in der Liste. Der Zaehler zeigt nur, was noch offen ist.
-    $(ids.title).textContent = ids.label + ' · ' + items.length + ' offen';
-    $(ids.empty).textContent = ids.all.length ? 'Alles erledigt.' : 'Noch keine Aufgaben. Unten eine hinzufügen.';
-  } else {
-    $(ids.title).textContent = ids.label + ' · ' + items.filter((x) => x.done).length + '/' + items.length;
-  }
 }
 
-export function renderTasks() {
-  const week = data.tasks.filter((x) => !x.today && !x.note);
-  fillTasks(week.filter((x) => !x.done), { list: 'task-list', empty: 'task-empty', title: 'tasks-title', label: 'Diese Woche', hideDone: true, all: week });
-  fillTasks(data.tasks.filter((x) => x.today && !x.note), { list: 'hd-list', empty: 'hd-empty', title: 'hd-title', label: 'Heute zu tun' });
-  renderNotes();
-  const weekOpen = week.filter((x) => !x.done);
-  const perWho = WHO.map((w) => [w, weekOpen.filter((x) => (x.who || 'Beide') === w).length]).filter(([, c]) => c > 0);
-  setPreview('pv-tasks', weekOpen.length ? weekOpen.length + ' offen · ' + perWho.map(([w, c]) => w + ' ' + c).join(' · ') : (week.length ? 'Alles erledigt' : 'Keine Aufgaben'));
-  const today = data.tasks.filter((x) => x.today && !x.note);
-  const todayOpen = today.filter((x) => !x.done);
+export function renderTasks(nowDate) {
+  const now = berlinNow(nowDate || new Date());
+  const tasks = data.tasks.filter((x) => !x.note);
+  // Diese Woche: alles ohne today-Markierung, Erledigtes (einmalig) ausgeblendet, Ueberfaelliges oben
+  const week = tasks.filter((x) => !x.today || isRecurring(x));
+  const weekOpen = sortTasks(week.filter((x) => isRecurring(x) || !x.done), now);
+  fillTasks(weekOpen, { list: 'task-list', empty: 'task-empty', fk: 'task-' }, now);
+  const over = weekOpen.filter((x) => taskState(x, now).kind === 'overdue').length;
+  const dueNow = weekOpen.filter((x) => ['overdue', 'today', 'none'].includes(taskState(x, now).kind)).length;
+  $('tasks-count').textContent = over ? over + ' überfällig' : dueNow + ' offen';
+  $('tasks-count').classList.toggle('is-over', over > 0);
+  $('task-empty').textContent = week.length ? 'Alles erledigt.' : 'Noch keine Aufgaben. Unten eine hinzufügen oder planen.';
+  setPreview('pv-tasks', weekOpen.length ? (over ? over + ' überfällig · ' : '') + dueNow + ' offen' + (weekOpen[0] ? ' · ' + weekOpen[0].text : '') : (week.length ? 'Alles erledigt' : 'Keine Aufgaben'));
+  // Erledigt (nur in der grossen Ansicht sichtbar): einmalige Aufgaben, neueste zuerst
+  const done = doneOnce(tasks).slice(0, 30);
+  const doneRows = done.map((x) => {
+    const row = el('div', 'task');
+    row.append(taskCheck(x, taskState(x, now), 'done-' + x.id));
+    const del = button('del', null, () => deleteTask(x), 'Aufgabe löschen: ' + x.text, 'done-del-' + x.id);
+    del.append(icon('close', 16));
+    row.append(del);
+    return row;
+  });
+  $('task-done-list').replaceChildren(...doneRows);
+  $('task-done').hidden = !doneRows.length;
+  // Heute zu tun: today-Eintraege wie bisher, dazu alles, was heute faellig oder ueberfaellig ist
+  const today = sortTasks(tasks.filter((x) => isForToday(x, now)), now);
+  fillTasks(today, { list: 'hd-list', empty: 'hd-empty', fk: 'hd-' }, now);
+  const todayOpen = today.filter((x) => isRecurring(x) || !x.done);
+  $('hd-title').textContent = 'Heute zu tun · ' + (today.length - todayOpen.length) + '/' + today.length;
   setPreview('pv-today', todayOpen.length ? todayOpen.length + ' offen · ' + todayOpen[0].text : (today.length ? 'Alles erledigt' : 'Nichts für heute'));
   scheduleFit();
 }
 
-// Notizen: Eintraege in tasks mit note: true. Chip wechselt, an wen die Notiz geht. Synchronisiert wie Aufgaben.
-export function renderNotes() {
-  const rows = data.tasks.filter((x) => x.note).slice().reverse().map((x) => {
-    const row = el('div', 'note');
-    row.append(el('span', 'note-text', x.text));
-    const who = button('who ' + (WHO_CLASS[x.who] || 'who-beide'), x.who,
-      () => write('tasks', (l) => { const y = l.find((z) => z.id === x.id); if (y) y.who = WHO[(WHO.indexOf(y.who) + 1) % WHO.length]; }),
-      'Notiz für: ' + x.who + '. Tippen zum Wechseln', 'note-who-' + x.id);
-    const del = button('del', null, () => write('tasks', (l) => l.filter((z) => z.id !== x.id)), 'Notiz löschen: ' + x.text, 'note-del-' + x.id);
-    del.append(icon('close', 16));
-    row.append(who, del);
-    return row;
-  });
-  $('note-list').replaceChildren(...rows);
-  $('note-empty').hidden = rows.length > 0;
-  const notes = data.tasks.filter((x) => x.note);
-  setPreview('pv-notes', notes.length ? (notes.length === 1 ? '1 Notiz' : notes.length + ' Notizen') + ' · ' + notes[notes.length - 1].text : 'Keine Notizen');
-}
-
-export function initNoteForm() {
-  const input = $('note-input');
-  const add = $('note-add');
-  input.addEventListener('input', () => add.classList.toggle('ready', input.value.trim().length > 0));
-  $('note-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-    write('tasks', (l) => { l.push({ id: newId(), text, who: 'Beide', done: false, note: true }); });
-    input.value = '';
-    add.classList.remove('ready');
-  });
-}
+// Notizen (note: true) gibt es seit 3.1 nicht mehr in der Oberflaeche. Alte Eintraege bleiben in den Daten,
+// werden aber nirgends angezeigt (alle Aufgabenlisten filtern note heraus).
 
 // Eingabe fuer "Heute zu tun": gleiche Liste tasks, Eintrag bekommt today: true.
 export function initTodayForm() {
@@ -314,15 +335,17 @@ export function initTodayForm() {
   });
 }
 
+let planDraft = '';
 export function initTaskForm() {
-  $('btn-week-reset').addEventListener('click', async () => {
-    if (!data.tasks.some((x) => x.done)) return;
-    if (await askConfirm('Alle Aufgaben wieder auf offen setzen und die Woche neu starten?', 'Woche neu starten')) {
-      write('tasks', (l) => l.map((x) => { x.done = false; return x; }));
-    }
-  });
   const input = $('task-input');
   const add = $('task-add');
+  // Planen: oeffnet den Dialog fuer Wiederholung, Datum, Uhrzeit, Erinnerung. Schon getippter Text wird uebernommen.
+  $('btn-plan').addEventListener('click', () => {
+    planDraft = input.value.trim();
+    input.value = '';
+    add.classList.remove('ready');
+    openOverlay('task:new');
+  });
   input.addEventListener('input', () => add.classList.toggle('ready', input.value.trim().length > 0));
   $('task-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -332,6 +355,124 @@ export function initTaskForm() {
     input.value = '';
     add.classList.remove('ready');
   });
+}
+
+// ---- Dialog: Wer hat erledigt? -------------------------------------------------------------------
+function renderWho(body, id) {
+  const x = findTask(data.tasks, id);
+  $('ov-title').textContent = 'Wer hat es erledigt?';
+  if (!x) { body.replaceChildren(el('div', 'empty', 'Diese Aufgabe gibt es nicht mehr.')); return; }
+  const btns = el('div', 'who-pick');
+  WHO.forEach((w) => btns.append(button('who who-big ' + WHO_CLASS[w], w, () => {
+    write('tasks', (l) => { const y = findTask(l, id); if (y && isRecurring(y)) completeRecurring(y, w, todayNow().date); });
+    closeOverlay();
+  }, w + ' hat es erledigt', 'who-pick-' + w)));
+  const next = nextDue(todayNow().date, x.every);
+  body.replaceChildren(el('p', 'set-text', x.text), btns,
+    el('p', 'hint', 'Nächstes Mal fällig: ' + (next ? shortDate(next) : '') + ' (' + everyLabel(x.every) + ' ab heute)'));
+}
+
+// ---- Dialog: Aufgabe planen oder bearbeiten ------------------------------------------------------
+function field(labelText, control) {
+  const f = el('label', 'set-field');
+  f.append(el('span', 'set-label', labelText), control);
+  return f;
+}
+function selectOf(options, value, fk) {
+  const s = el('select', 'set-input');
+  s.dataset.fk = fk;
+  options.forEach(([v, label]) => {
+    const o = el('option', null, label);
+    o.value = v === null ? '' : String(v);
+    if (String(v === null ? '' : v) === String(value === undefined || value === null ? '' : value)) o.selected = true;
+    s.append(o);
+  });
+  return s;
+}
+function inputOf(type, value, fk, extra) {
+  const i = el('input', 'set-input');
+  i.type = type;
+  i.value = value || '';
+  i.dataset.fk = fk;
+  Object.assign(i, extra || {});
+  return i;
+}
+
+function renderPlan(body, id) {
+  const isNew = id === 'new';
+  const x = isNew ? null : findTask(data.tasks, id);
+  $('ov-title').textContent = isNew ? 'Aufgabe planen' : 'Aufgabe bearbeiten';
+  if (!isNew && !x) { body.replaceChildren(el('div', 'empty', 'Diese Aufgabe gibt es nicht mehr.')); return; }
+  const text = inputOf('text', isNew ? planDraft : x.text, 'plan-text', { maxLength: 60, placeholder: 'z. B. Bad putzen', autocomplete: 'off' });
+  const every = selectOf([[null, 'Nicht wiederholen'], ...EVERY_OPTIONS], x ? x.every : null, 'plan-every');
+  const due = inputOf('date', x ? x.due : '', 'plan-due');
+  const time = inputOf('time', x ? x.time : '', 'plan-time');
+  const remind = selectOf(REMIND_OPTIONS, x ? x.remind : null, 'plan-remind');
+  const dueField = field('', due);
+  const remindField = field('', remind);
+  // Startwerte merken: gespeichert wird nur, was hier geaendert wurde (sonst ueberschreibt der Dialog den Sync)
+  const init = { text: text.value, every: every.value, due: due.value, time: time.value, remind: remind.value };
+  const msg = el('p', 'set-msg');
+  msg.setAttribute('role', 'status');
+  const sync = () => {
+    const rec = every.value !== '';
+    dueField.firstChild.textContent = rec ? 'Nächstes Mal fällig (leer = heute)' : 'Fällig am (optional)';
+    remind.disabled = !time.value;
+    remindField.firstChild.textContent = time.value ? 'Erinnerung im Cockpit' : 'Erinnerung (braucht Uhrzeit)';
+  };
+  every.addEventListener('change', sync);
+  time.addEventListener('input', sync);
+  time.addEventListener('change', sync);
+  sync();
+
+  const parts = [field('Aufgabe', text), field('Wiederholen', every), dueField];
+  const row = el('div', 'plan-row');
+  row.append(field('Uhrzeit (optional)', time), remindField);
+  parts.push(row);
+
+  if (x && isRecurring(x)) {
+    // Verlauf: die letzten 5 Durchgaenge. Zuruecknehmen baut nur diesen Block neu, Eingaben oben bleiben stehen.
+    const hist = el('div', 'plan-hist');
+    const drawHist = () => {
+      const cur = findTask(data.tasks, id);
+      const log = cur && Array.isArray(cur.log) ? cur.log : [];
+      const rows = [el('span', 'set-label', 'Verlauf' + (log.length > 5 ? ' (letzte 5 von ' + log.length + ')' : ''))];
+      if (!log.length) rows.push(el('p', 'hint', 'Noch nie erledigt.'));
+      log.slice(0, 5).forEach((e, i) => {
+        const r = el('div', 'hist-row');
+        r.append(el('span', 'hist-date', shortDate(e.at)), el('span', 'who ' + (WHO_CLASS[e.by] || 'who-beide'), e.by));
+        if (i === 0) r.append(button('btn-link', 'Zurücknehmen', () => {
+          write('tasks', (l) => { const y = findTask(l, id); if (y) undoLast(y); });
+          const y = findTask(data.tasks, id);
+          if (y && y.due && due.value === init.due) { due.value = y.due; init.due = y.due; }
+          drawHist();
+          const f = hist.querySelector('[data-fk="plan-undo"]') || due;
+          f.focus({ preventScroll: true });
+        }, 'Letzten Durchgang zurücknehmen', 'plan-undo'));
+        rows.push(r);
+      });
+      hist.replaceChildren(...rows);
+    };
+    drawHist();
+    parts.push(hist);
+  }
+
+  const foot = el('div', 'leave-foot');
+  if (x) foot.append(button('btn-link btn-danger', 'Löschen', async () => { if (await deleteTask(x)) closeOverlay(); }, 'Aufgabe löschen', 'plan-del'));
+  foot.append(button('btn-ghost', 'Abbrechen', closeOverlay, 'Abbrechen', 'plan-cancel'),
+    button('btn-gold-s', 'Speichern', () => {
+      const val = { text: text.value, every: every.value, due: due.value, time: time.value, remind: remind.value };
+      const input = {};
+      Object.keys(val).forEach((k) => { if (isNew || val[k] !== init[k]) input[k] = val[k] === '' ? null : val[k]; });
+      if (isNew && input.text == null) input.text = '';
+      if (!String(text.value).trim()) { msg.textContent = 'Bitte einen Namen für die Aufgabe eingeben.'; text.focus(); return; }
+      const d = todayNow().date;
+      if (isNew) write('tasks', (l) => { l.push(newTask(newId(), input, d)); });
+      else write('tasks', (l) => { const y = findTask(l, id); if (y) applyPlan(y, input, d); });
+      planDraft = '';
+      closeOverlay();
+    }, 'Speichern', 'plan-save'));
+  body.replaceChildren(...parts, msg, foot);
 }
 
 // ---- Bus -----------------------------------------------------------------------------------------
@@ -390,25 +531,39 @@ export function renderBus(now) {
 
 // ---- Overlay: Kalender oder Sammlung ------------------------------------------------
 let opener = null;
+let openerFk = null; // Zeilen werden nach write() neu gebaut: dann den Knopf ueber data-fk wiederfinden
 
 export function openOverlay(kind) {
+  builtKind = null;
   opener = document.activeElement;
+  openerFk = opener && opener.dataset ? opener.dataset.fk || null : null;
   setUi({ open: kind });
 }
 export function closeOverlay() {
+  builtKind = null;
   setUi({ open: null });
-  if (opener && opener.isConnected) opener.focus({ preventScroll: true });
+  const back = opener && opener.isConnected ? opener
+    : (openerFk ? document.querySelector('[data-fk="' + CSS.escape(openerFk) + '"]') : null);
+  if (back) back.focus({ preventScroll: true });
   opener = null;
+  openerFk = null;
 }
 
 let overlayWasOpen = false;
+let builtKind = null;
 export function renderOverlay(now) {
   const root = $('overlay');
   const kind = ui.open;
   root.hidden = !kind;
-  if (!kind) { overlayWasOpen = false; return; }
+  if (!kind) { overlayWasOpen = false; builtKind = null; return; }
   const body = $('ov-body');
-  if (kind === 'cal') {
+  // Aufgaben-Dialoge nur beim Oeffnen bauen, sonst verliert der Minutentakt die Eingaben
+  if (kind.startsWith('task:') || kind.startsWith('who:')) {
+    if (builtKind !== kind) {
+      builtKind = kind;
+      if (kind.startsWith('who:')) renderWho(body, kind.slice(4)); else renderPlan(body, kind.slice(5));
+    }
+  } else if (kind === 'cal') {
     $('ov-title').textContent = 'Kalender';
     const rows = computeCal(now).cal.map((e) => {
       const row = el('div', 'ov-row');
@@ -435,7 +590,11 @@ export function renderOverlay(now) {
     if (!rows.length) rows.push(el('div', 'empty', 'Noch keine Rezepte in der Sammlung.'));
     body.replaceChildren(...rows);
   }
-  if (!overlayWasOpen) { overlayWasOpen = true; $('ov-close').focus({ preventScroll: true }); }
+  if (!overlayWasOpen) {
+    overlayWasOpen = true;
+    const first = kind === 'task:new' ? body.querySelector('[data-fk="plan-text"]') : null;
+    (first || $('ov-close')).focus({ preventScroll: true });
+  }
 }
 
 // Artikel aus dem Cockpit in die Einkaufsliste. write('shop') stoesst den Sync an, Partner-App und Cockpit gleichen ab.
@@ -590,8 +749,8 @@ export function renderCalMonth(now = new Date()) {
 // - Kompakt (is-auto, nur Querformat): reicht der Platz in einer Spalte nicht, zeigt die Kachel mit dem
 //   wenigsten Inhalt von selbst ihre Vorschau. Wird bei jeder Aenderung neu berechnet.
 // - Gross (is-open): die Kachel wandert in die Fokusansicht ueber dem Raster, an ihrem Platz bleibt ein Platzhalter.
-const EXPANDABLE = ['tile-cal', 'tile-shop', 'tile-today', 'tile-tasks', 'tile-notes'];
-const MINIMIZABLE = ['tile-notes', 'tile-bus', 'tile-today', 'tile-cal', 'tile-tasks', 'tile-shop'];
+const EXPANDABLE = ['tile-cal', 'tile-shop', 'tile-today', 'tile-tasks'];
+const MINIMIZABLE = ['tile-bus', 'tile-today', 'tile-cal', 'tile-tasks', 'tile-shop'];
 const MIN_KEY = 'wohnungs-cockpit.min';
 const LANDSCAPE = window.matchMedia('(min-width: 1100px) and (min-height: 700px)');
 let openTile = null;
@@ -804,7 +963,6 @@ export function initTiles() {
   $('btn-cal-all').addEventListener('click', () => openOverlay('cal'));
   $('btn-leave').addEventListener('click', () => openOverlay('leave'));
   initTodayForm();
-  initNoteForm();
   initShopForm();
   $('btn-saved').addEventListener('click', () => openOverlay('saved'));
   $('ov-close').addEventListener('click', closeOverlay);

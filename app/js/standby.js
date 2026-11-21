@@ -20,6 +20,8 @@ let lastActivity = param === 'an' ? 0 : Date.now();
 let active = false;
 
 export const isStandby = () => active;
+// Von aussen beenden (z. B. Erinnerungs-Banner oeffnet einen Dialog). Zeichnet nicht selbst neu.
+export function leaveStandby() { if (active) { active = false; lastActivity = Date.now(); } }
 
 // Prueft, ob der Standby an oder aus sein soll. blocked: Kochmodus, Nacht, Ersteinrichtung.
 // Gibt true zurueck, wenn sich der Zustand geaendert hat.

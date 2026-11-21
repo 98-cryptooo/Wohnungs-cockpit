@@ -31,7 +31,8 @@ Wetterort, Haltestelle, Linien, Richtungen und Fußweg stehen nie im Repo, sonde
 ## Datenformat
 - `shop`: `{t, done, at, doneAt?, q?, g?, u?, r?}`. t = Name, q = Menge, g = Gruppe, u = Rezept-Link, r = Rezept-ID.
 - `recipes`: `{name, url, steps[], servings, yieldText, time, image, ingredients[{q,t}], status: list|today|saved, at}`.
+- `tasks` (nur Cockpit, die Partner-App gleicht diese Liste nicht ab): `{id, text, who, done, today?, note?, every?, due?, time?, remind?, log?[{at, by, prev}], doneAt?}`. every = Tage oder 'm', gesetzt = wiederkehrend. Logik in `app/js/tasks.js`.
 - Gruppierung im Cockpit: Allgemein und Rezepte zu Lebensmittelmarkt (Rezepte als Untergruppe), Drogerie zu Drogerie, alles andere zu Andere.
 
 ## Kacheln
-Uhr mit Heute-Bereich und Wetter, Kalender (live), Diese Woche (Aufgaben hinzufügen, löschen, Zuständigkeit), Einkauf (synchron, Artikel hinzufügen, nach Laden und Rezept, Rezepte einklappbar), Bus (Linien und Fußweg aus den Einstellungen), Smart Home nur als Hinweis. Kochmodus mit Schritten, Timer und Portionen, Rezeptsammlung. Nachtmodus 22 bis 6 Uhr mit Pixel-Shift.
+Uhr mit Heute-Bereich und Wetter, Kalender (live), Diese Woche als Putzplan (wiederkehrend ab Erledigung, wer hat erledigt, Verlauf, überfällig, Planen-Dialog), Heute zu tun (inkl. Fälligem), Erinnerungen als Banner mit Ton, Einkauf (synchron, Artikel hinzufügen, nach Laden und Rezept, Rezepte einklappbar), Bus (Linien und Fußweg aus den Einstellungen). Kochmodus mit Schritten, Timer und Portionen, Rezeptsammlung. Nachtmodus 22 bis 6 Uhr mit Pixel-Shift.

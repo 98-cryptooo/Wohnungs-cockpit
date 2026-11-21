@@ -10,6 +10,7 @@ import { initStandby, standbyTick, isStandby, renderStandby } from './js/standby
 import { initSetup, boot, syncSoon } from './js/setup.js';
 import { settings } from './js/settings.js';
 import { startLive, refreshLive } from './js/live.js';
+import { initReminders, checkReminders } from './js/reminders.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -66,8 +67,10 @@ function onTick(force) {
     renderCalTop(now);
     renderWeather(now);
     renderBus(now);
+    renderTasks(now); // Faelligkeit und Ueberfaelliges wechseln mit der Uhrzeit
     applyMode(now);
   });
+  checkReminders(now);
 }
 
 subscribe((topic) => {
@@ -76,7 +79,7 @@ subscribe((topic) => {
     switch (topic) {
       case 'shop': renderShop(); break;
       case 'recipes': renderShop(); applyMode(now); break;
-      case 'tasks': renderTasks(); break;
+      case 'tasks': renderTasks(); checkReminders(now); break;
       case 'weather': renderWeather(now); applyMode(now); break;
       case 'transit': renderBus(now); break;
       case 'cal': renderCalTop(now); applyMode(now); break;
@@ -105,6 +108,7 @@ initCook();
 initConfirm();
 initSetup();
 initStandby(() => applyMode(new Date()));
+initReminders();
 $('night').addEventListener('click', () => { peek(); onTick(true); });
 renderEverything(new Date());
 onTick(true);

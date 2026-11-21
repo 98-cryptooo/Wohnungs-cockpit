@@ -22,7 +22,7 @@
 
   <main id="day" class="day">
 
-    <!-- Linke Spalte: Uhr, Notizen, Bus, Heute zu tun -->
+    <!-- Linke Spalte: Uhr, Bus, Heute zu tun -->
     <div class="stack stack-a">
 
     <!-- Uhr, Heute, Wetter -->
@@ -53,24 +53,6 @@
       </div>
     </section>
 
-    <!-- Notizen (gemeinsamer Zettel, Eintraege in tasks mit note: true, synchronisiert) -->
-    <section id="tile-notes" class="tile tile-notes" aria-label="Notizen">
-      <div class="tile-head">
-        <h2 class="h"><button type="button" class="min-btn"><span class="chev" aria-hidden="true"></span><span id="notes-title" class="min-title">Notizen</span></button></h2>
-      </div>
-      <button id="pv-notes" type="button" class="preview"></button>
-      <div id="note-list" class="scroll note-list"></div>
-      <div id="note-empty" class="empty" hidden>Noch keine Notizen. Unten eine schreiben.</div>
-      <span class="hint">Chip: an wen, × löscht</span>
-      <form id="note-form" class="task-form" autocomplete="off">
-        <label class="grow">
-          <span class="sr">Neue Notiz</span>
-          <input id="note-input" type="text" placeholder="z. B. Bin um 18 Uhr da" maxlength="200">
-        </label>
-        <button id="note-add" type="submit" class="btn-add">Hinzufügen</button>
-      </form>
-    </section>
-
     <!-- Bus -->
     <section id="tile-bus" class="tile tile-bus" aria-label="Abfahrten">
       <div class="tile-head tile-head-base">
@@ -94,7 +76,7 @@
       <button id="pv-today" type="button" class="preview"></button>
       <div id="hd-list" class="scroll task-list"></div>
       <div id="hd-empty" class="empty" hidden>Noch nichts für heute. Unten eine hinzufügen.</div>
-      <span class="hint">Text: abhaken · Chip: Zuständigkeit wechseln</span>
+      <span class="hint">Text: abhaken · Fälliges aus Diese Woche erscheint hier von selbst</span>
       <form id="hd-form" class="task-form" autocomplete="off">
         <label class="grow">
           <span class="sr">Neu für heute</span>
@@ -125,12 +107,17 @@
     <section id="tile-tasks" class="tile tile-tasks" aria-label="Diese Woche">
       <div class="tile-head">
         <h2 class="h"><button type="button" class="min-btn"><span class="chev" aria-hidden="true"></span><span id="tasks-title" class="min-title">Diese Woche</span></button></h2>
-        <button id="btn-week-reset" type="button" class="btn-link">Woche neu starten</button>
+        <span id="tasks-count" class="tcount"></span>
+        <button id="btn-plan" type="button" class="btn-link">Planen</button>
       </div>
       <button id="pv-tasks" type="button" class="preview"></button>
       <div id="task-list" class="scroll task-list"></div>
       <div id="task-empty" class="empty" hidden>Noch keine Aufgaben. Unten eine hinzufügen.</div>
-      <span class="hint">Text: abhaken · Chip: Zuständigkeit wechseln</span>
+      <div id="task-done" class="task-done" hidden>
+        <h3 class="set-h">Erledigt</h3>
+        <div id="task-done-list" class="task-list"></div>
+      </div>
+      <span class="hint">Text: abhaken · Stift: planen und Verlauf · Planen: Wiederholung, Datum, Erinnerung</span>
       <form id="task-form" class="task-form" autocomplete="off">
         <label class="grow">
           <span class="sr">Neue Aufgabe</span>
@@ -311,7 +298,7 @@
 
           <button id="cfg-clear" type="button" class="btn-ghost">Orts-Einstellungen löschen</button>
         </section>
-        <p class="set-msg" id="app-version">Version 3.0 (22.11.2026)</p>
+        <p class="set-msg" id="app-version">Version 3.1 (22.11.2026)</p>
       </div>
     </div>
   </div>
@@ -335,6 +322,13 @@
       <div class="sb-now"><span id="sb-temp" class="sb-temp"></span><span id="sb-time" class="sb-time"></span></div>
     </div>
     <div id="sb-grid" class="sb-grid"></div>
+  </div>
+
+  <!-- Erinnerung (Banner oben, siehe reminders.js) -->
+  <div id="reminder" class="reminder" role="status" aria-live="polite" hidden>
+    <span id="rem-text" class="rem-text"></span>
+    <button id="rem-done" type="button" class="btn-ghost">Erledigt</button>
+    <button id="rem-ok" type="button" class="btn-gold-s">OK</button>
   </div>
 
   <!-- Nachtmodus -->

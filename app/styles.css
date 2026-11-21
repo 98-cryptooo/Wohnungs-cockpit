@@ -98,20 +98,19 @@ h2, h3, p { margin: 0; }
 .tile-clock { padding: 20px; justify-content: space-between; gap: 0; }
 .tile-shop { gap: 6px; }
 .tile-tasks, .tile-today { gap: 8px; }
-.tile-shop .shop-list, .tile-tasks .task-list, .tile-today .task-list, .tile-notes .note-list { max-height: 60vh; }
+.tile-shop .shop-list, .tile-tasks .task-list, .tile-today .task-list { max-height: 60vh; }
 
 /* Spalten-Stapel: nur im Querformat echte Spalten. Auf Telefon und Tablet hochkant fliessen die Kacheln im Raster. */
 .stack { display: contents; }
 /* Telefon und Tablet: Reihenfolge der Kacheln */
 .tile-clock { order: 1; }
-.tile-notes { order: 2; }
 .tile-today { order: 3; }
 .tile-cal { order: 4; }
 .tile-shop { order: 5; }
 .tile-tasks { order: 6; }
 .tile-bus { order: 7; }
 
-/* Tablet hochkant: zwei Spalten ohne Loecher. Links Uhr, Notizen, Heute, Bus. Rechts Kalender, Woche, Einkauf. */
+/* Tablet hochkant: zwei Spalten ohne Loecher. Links Uhr, Heute, Bus. Rechts Kalender, Woche, Einkauf. */
 @media (min-width: 700px) {
   .day { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto 1fr; padding: 20px; gap: 16px; align-items: start; }
   .stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
@@ -140,12 +139,12 @@ h2, h3, p { margin: 0; }
   .stack > .tile-bus { flex: 0 1 auto; }
   /* Leere Kacheln nehmen sich wenig vom freien Platz */
   .stack > .tile:has(> .empty:not([hidden])) { flex-grow: 0.25; }
+  /* Linke Spalte hat seit 3.1 nur Uhr, Heute und Bus: Heute fuellt den Rest, auch wenn leer */
+  .stack > .tile-today:has(> .empty:not([hidden])) { flex-grow: 1; }
   .stack > .tile.is-min, .stack > .tile.is-auto { flex: 0 0 auto; }
-  .tile-shop .shop-list, .tile-tasks .task-list, .tile-today .task-list, .tile-notes .note-list { max-height: none; }
+  .tile-shop .shop-list, .tile-tasks .task-list, .tile-today .task-list { max-height: none; }
   /* Hinweise nur in der grossen Ansicht, im Raster kostet jede Zeile Platz */
   .stack .tile > .hint:not(.cal-note):not(.bus-note) { display: none; }
-  /* Selten gebraucht: Woche neu starten nur in der grossen Ansicht, damit der Titel Platz hat */
-  .stack #btn-week-reset { display: none; }
 }
 .tile-head { display: flex; justify-content: space-between; align-items: center; min-height: 48px; gap: 12px; }
 .tile-head-base { align-items: baseline; min-height: 0; }
@@ -324,7 +323,7 @@ h2, h3, p { margin: 0; }
   text-overflow: ellipsis;
   color: var(--text);
 }
-[aria-checked="true"] > .label { color: #85888E; text-decoration: line-through; }
+[aria-checked="true"] > .label, [aria-checked="true"] > .tcol > .label { color: #85888E; text-decoration: line-through; }
 .qty { font-size: 14px; color: var(--muted); white-space: nowrap; }
 
 /* Kalender */
@@ -413,7 +412,7 @@ h2, h3, p { margin: 0; }
 
 /* Aufgaben */
 .task-list { flex: 1; display: flex; flex-direction: column; }
-.task { display: flex; align-items: center; gap: 10px; min-height: 52px; border-bottom: 1px solid #222529; }
+.task { display: flex; align-items: center; gap: 10px; min-height: 52px; flex-shrink: 0; border-bottom: 1px solid #222529; }
 .task .check { flex: 1; min-width: 0; min-height: 48px; width: auto; font-size: 18px; }
 .who {
   font-size: 14px;
@@ -779,7 +778,7 @@ h2, h3, p { margin: 0; }
   padding: calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left)); }
 .focus-card { position: relative; width: min(1180px, 100%); height: 100%; display: flex; min-height: 0; }
 .focus-card > .tile { flex: 1; min-height: 0; padding: 24px 28px; gap: 12px; border-color: #3A3E44; box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55); }
-.focus-card .shop-list, .focus-card .task-list, .focus-card .note-list { max-height: none; }
+.focus-card .shop-list, .focus-card .task-list { max-height: none; }
 @media (max-width: 699px) {
   .focus { padding: calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)); }
   .focus-card > .tile { padding: 18px; }
@@ -790,7 +789,7 @@ h2, h3, p { margin: 0; }
 }
 /* Grosse Ansicht: Listen in mehreren Spalten, wenn Platz ist */
 @media (min-width: 900px) {
-  .focus-card .task-list, .focus-card .note-list {
+  .focus-card .task-list {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); column-gap: 32px; align-content: start;
   }
   .focus-card .shop-list {
@@ -843,10 +842,6 @@ h2, h3, p { margin: 0; }
 .c2 { background: #B9A3F0; }
 .c3 { background: #8FB8DE; }
 
-/* Notizen */
-.note-list { display: flex; flex-direction: column; min-height: 0; flex: 1; }
-.note { display: flex; align-items: center; gap: 10px; min-height: 52px; border-bottom: 1px solid #222529; }
-.note-text { flex: 1; min-width: 0; font-size: 17px; line-height: 1.3; overflow-wrap: anywhere; }
 
 /* Standby: grosser Kalender ueber fuenf Wochen, ein Tipp schliesst ihn */
 .standby {
@@ -908,3 +903,70 @@ h2, h3, p { margin: 0; }
   .sb-ev { font-size: 14px; line-height: 21px; min-height: 21px; }
   .sb-n { font-size: 17px; }
 }
+
+/* ---- Putzplan und Aufgaben (3.1) ---- */
+.task .check .tcol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tmeta { font-size: 15px; color: var(--muted); }
+.focus-card .tmeta { font-size: 16px; }
+.tmeta.k-today { color: var(--accent); }
+.tmeta.k-overdue { color: #E8907E; font-weight: 600; }
+.task.is-overdue .box { border-color: #E8907E; }
+.box-round { border-radius: 12px; }
+.task-done { display: none; flex-direction: column; gap: 6px; padding-top: 10px; }
+.focus-card .task-done:not([hidden]) { display: flex; }
+.who-pick { display: flex; gap: 12px; flex-wrap: wrap; }
+.who-big { flex: 1 1 0; min-height: 64px; font-size: 18px; }
+.plan-row { display: flex; gap: 12px; }
+.plan-row > .set-field { flex: 1 1 0; min-width: 0; }
+select.set-input {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B4B1AB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.set-input:disabled { opacity: .45; }
+.plan-hist { display: flex; flex-direction: column; gap: 6px; }
+.hist-row { display: flex; align-items: center; gap: 12px; min-height: 44px; border-bottom: 1px solid #26292E; }
+.hist-date { flex: 1; font-size: 16px; }
+.hist-row .who { min-height: 32px; min-width: 64px; display: inline-flex; align-items: center; justify-content: center; }
+.ov-body .leave-foot { flex-wrap: wrap; }
+.reminder {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 38;
+  width: min(720px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #2A2418;
+  border: 1px solid var(--accent);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
+}
+.reminder[hidden] { display: none; }
+.rem-text { flex: 1; min-width: 0; font-size: 20px; color: var(--text); overflow-wrap: anywhere; }
+.task .check .label { overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
+@media (max-width: 600px) {
+  .task { gap: 6px; }
+  .task .who { min-width: 0; padding: 0 10px; }
+  .task .del { width: 40px; }
+  .plan-row { flex-direction: column; }
+}
+
+/* Review 3.1: Zahl neben dem Titel bleibt sichtbar, gekuerzt wird nur der Titel */
+.tcount { flex-shrink: 0; font-size: 15px; color: var(--muted); white-space: nowrap; }
+.tcount.is-over { color: #E8907E; font-weight: 600; }
+/* Loeschen in der Zeile nur in der grossen Ansicht, sonst ueber den Stift (weniger Fehltipps, mehr Platz fuer Text) */
+.stack .task .del-x { display: none; }
+/* Dialog: Fussleiste bleibt sichtbar, Loeschen links und rot abgesetzt */
+.ov-body .leave-foot { position: sticky; bottom: 0; background: #1A1C20; z-index: 1; }
+.leave-foot .btn-danger { flex: 0 0 auto; color: #E8907E; margin-right: auto; }
+/* Banner: groessere Knoepfe (Abstand, AirPlay), nachts gedimmt */
+.reminder .btn-ghost, .reminder .btn-gold-s { font-size: 17px; min-height: 52px; padding: 0 20px; }
+body:has(#night:not([hidden])) .reminder { background: #15120C; border-color: #7D6A48; box-shadow: none; }
+body:has(#night:not([hidden])) .rem-text { color: #B4A07A; }
