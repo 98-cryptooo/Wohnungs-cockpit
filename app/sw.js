@@ -2,7 +2,7 @@
 // Bei jeder Aenderung an der App die Version hochzaehlen, damit der Cache erneuert wird.
 // Der Origin wird mit anderen Apps geteilt: nur eigene Caches (Praefix cockpit-shell-) anfassen.
 const PREFIX = 'cockpit-shell-';
-const VERSION = PREFIX + 'v32';
+const VERSION = PREFIX + 'v33';
 const SHELL = [
   './',
   './index.html',
@@ -36,6 +36,7 @@ const SHELL = [
   './js/mealsui.js',
   './js/recipeimport.js',
   './js/recipesui.js',
+  './js/recipeimage.js',
   './manifest.webmanifest',
   './icon.svg',
   './icon-192.png',

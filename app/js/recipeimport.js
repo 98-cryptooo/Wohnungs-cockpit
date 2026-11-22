@@ -131,7 +131,7 @@ function ldSteps(x) {
   return out.slice(0, 40);
 }
 const yieldNum = (y) => { const m = [].concat(y || []).map(String).join(' ').match(/\d+/); return m ? Math.min(+m[0], 50) : null; };
-function ldImage(i) { const v = [].concat(i || [])[0]; return typeof v === 'string' ? v : (v && v.url) || null; }
+function ldImage(i) { const v = [].concat(i || [])[0]; return typeof v === 'string' ? v : (v && (v.url || v.contentUrl)) || null; }
 function ldCategory(r) { const c = [].concat(r.recipeCategory || [])[0]; return c ? cleanLine(c).slice(0, 30) : ''; }
 
 // Strukturierte Rezeptdaten (schema.org/Recipe in JSON-LD) aus HTML
@@ -161,6 +161,34 @@ export function fromLdJson(html) {
   return null;
 }
 
+// Adresse absolut machen (Bilder stehen oft relativ in der Seite), nur http und https
+export function absUrl(u, base) {
+  if (!u || typeof u !== 'string') return null;
+  try {
+    const x = new URL(decodeEnt(u.trim()), base || undefined);
+    return x.protocol === 'http:' || x.protocol === 'https:' ? x.href : null;
+  } catch (e) { return null; }
+}
+// Vorschaubild der Seite (og:image, sonst twitter:image), falls das Rezept selbst keins nennt
+export function ogImage(html, base) {
+  const tags = String(html || '').match(/<meta\b[^>]*>/gi) || [];
+  let tw = null;
+  for (const t of tags) {
+    const attr = (a) => { const m = t.match(new RegExp('[\\s<]' + a + '\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')', 'i')); return m ? (m[1] != null ? m[1] : m[2]) : null; };
+    const k = attr('property') || attr('name');
+    const c = attr('content');
+    if (!k || !c) continue;
+    const name = k.toLowerCase();
+    if (/^og:image(?::url|:secure_url)?$/.test(name)) { const u = absUrl(c, base); if (u) return u; }
+    if (!tw && /^twitter:image(?::src)?$/.test(name)) tw = absUrl(c, base);
+  }
+  return tw;
+}
+// Bild ueber den Bilddienst wsrv.nl holen: verkleinert, als JPEG, mit CORS (die Rezeptseiten erlauben das meist nicht)
+export function wsrvUrl(src) {
+  return 'https://wsrv.nl/?url=' + encodeURIComponent(src) + '&w=640&h=640&fit=inside&we&output=jpg&q=80';
+}
+
 // Rezept aus freiem Text (Screenshot-Text oder eingefuegt)
 export function fromText(txt, name = '') {
   const y = yieldFromText(txt);
@@ -187,9 +215,11 @@ async function getText(fetchImpl, url, opts, ms) {
 export async function importFromUrl(url, fetchImpl = fetch) {
   const proxy = 'https://r.jina.ai/' + url;
   let ld = null;
+  let html = '';
   try {
-    const html = await getText(fetchImpl, proxy, { headers: { 'X-Return-Format': 'html' } }, 15000);
+    html = await getText(fetchImpl, proxy, { headers: { 'X-Return-Format': 'html' } }, 15000);
     ld = fromLdJson(html);
+    if (ld) ld.image = absUrl(ld.image, url) || ogImage(html, url);
     if (ld && ld.steps.length) return { ...ld, url };
   } catch (e) { /* weiter mit Markdown */ }
   const md = await getText(fetchImpl, proxy, null, 20000);
@@ -200,7 +230,14 @@ export async function importFromUrl(url, fetchImpl = fetch) {
   const tm = md.match(/^Title:\s*(.+)$/m);
   if (tm && /\b(404|nicht gefunden|not found|seite existiert nicht)\b/i.test(tm[1])) throw new Error('target');
   const name = tm ? cleanLine(tm[1]).replace(/\s+[|–-]\s+[^|–-]*$/, '').slice(0, 60) : '';
-  return { ...fromText(body, name), url };
+  return { ...fromText(body, name), image: ogImage(html, url), url };
+}
+
+// Nur die Bildadresse eines Rezept-Links (fuer alte Rezepte ohne gespeichertes Bild)
+export async function imageUrlFor(url, fetchImpl = fetch) {
+  const html = await getText(fetchImpl, 'https://r.jina.ai/' + url, { headers: { 'X-Return-Format': 'html' } }, 15000);
+  const ld = fromLdJson(html);
+  return (ld && absUrl(ld.image, url)) || ogImage(html, url);
 }
 
 // ---- Texterkennung (Tesseract aus dem CDN, Pruefsumme wie in der Partner-App) ----------------------

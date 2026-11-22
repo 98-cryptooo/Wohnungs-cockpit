@@ -1,7 +1,7 @@
 // Tests fuer den Rezept-Import (Link, Screenshot-Text, eingefuegter Text). Fiktive Rezepte, kein Netz.
 //   node tests/recipeimport.test.mjs
 import assert from 'node:assert/strict';
-import { splitAmt, ingredientsFromText, stepsFromText, fromLdJson, fromText, importFromUrl, findUrl, decodeEnt, yieldFromText } from '../app/js/recipeimport.js';
+import { splitAmt, ingredientsFromText, stepsFromText, fromLdJson, fromText, importFromUrl, findUrl, decodeEnt, yieldFromText, ogImage, absUrl, wsrvUrl, imageUrlFor } from '../app/js/recipeimport.js';
 
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
@@ -91,6 +91,41 @@ test('Link-Import ohne JSON-LD: Markdown mit Titel', async () => {
   assert.equal(r.name, 'Pfannkuchen');
   assert.equal(r.ingredients.length, 3);
   assert.equal(r.steps.length, 2);
+});
+
+test('Bild: og:image aus der Seite, relativ wird absolut, nur http(s)', () => {
+  const html = '<head><meta name="twitter:image" content="https://x.example/tw.jpg"><meta property="og:image" content="/bilder/suppe.jpg?a=1&amp;b=2"></head>';
+  assert.equal(ogImage(html, 'https://beispiel.example/rezept/suppe'), 'https://beispiel.example/bilder/suppe.jpg?a=1&b=2');
+  assert.equal(ogImage('<meta name="twitter:image" content="https://x.example/tw.jpg">', 'https://b.example/'), 'https://x.example/tw.jpg');
+  assert.equal(ogImage('<meta content="https://x.example/c.jpg" property="og:image">'), 'https://x.example/c.jpg');
+  assert.equal(ogImage('<meta property="og:image" content="javascript:alert(1)">', 'https://b.example/'), null);
+  assert.equal(absUrl('data:image/png;base64,AAA', 'https://b.example/'), null);
+  assert.equal(ogImage('<meta data-content="https://x.example/falsch.jpg" property="og:image" content="https://x.example/it\'s.jpg">'), "https://x.example/it's.jpg");
+});
+
+test('Bild: wsrv.nl-Adresse kodiert die Bildadresse', () => {
+  const u = wsrvUrl('https://b.example/a b.jpg?x=1&y=2');
+  assert.ok(u.startsWith('https://wsrv.nl/?url=https%3A%2F%2Fb.example%2Fa%20b.jpg%3Fx%3D1%26y%3D2&'));
+});
+
+test('Link-Import: Bild aus JSON-LD (ImageObject, relativ), sonst og:image', async () => {
+  const ld = '<meta property="og:image" content="https://b.example/og.jpg"><script type="application/ld+json">{"@type":"Recipe","name":"Suppe","image":[{"@type":"ImageObject","url":"/img/suppe.jpg"}],"recipeIngredient":["1 l Brühe","2 Möhren"],"recipeInstructions":"Alles kochen."}</script>';
+  const r = await importFromUrl('https://b.example/suppe', async () => ({ ok: true, text: async () => ld }));
+  assert.equal(r.image, 'https://b.example/img/suppe.jpg');
+  const noImg = ld.replace(/"image":\[[^\]]*\],/, '');
+  const r2 = await importFromUrl('https://b.example/suppe', async () => ({ ok: true, text: async () => noImg }));
+  assert.equal(r2.image, 'https://b.example/og.jpg');
+  const md = 'Title: Pfannkuchen\n\nMarkdown Content:\n## Zutaten\n- 250 g Mehl\n- 3 Eier\n';
+  const r3 = await importFromUrl('https://b.example/p', async (u, o) => ({ ok: true, text: async () => (o && o.headers ? '<meta property="og:image" content="https://b.example/p.jpg">' : md) }));
+  assert.equal(r3.image, 'https://b.example/p.jpg');
+  const r4 = await importFromUrl('https://b.example/p', async (u, o) => ({ ok: true, text: async () => (o && o.headers ? '<html></html>' : md) }));
+  assert.equal(r4.image, null);
+});
+
+test('Bild nachholen: nur die Bildadresse eines Links', async () => {
+  const html = '<meta property="og:image" content="https://b.example/og.jpg">';
+  assert.equal(await imageUrlFor('https://b.example/x', async () => ({ ok: true, text: async () => html })), 'https://b.example/og.jpg');
+  assert.equal(await imageUrlFor('https://b.example/x', async () => ({ ok: true, text: async () => '' })), null);
 });
 
 test('Link-Import: Fehler vom Dienst wird gemeldet', async () => {

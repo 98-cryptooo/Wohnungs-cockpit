@@ -7,6 +7,7 @@ import { askConfirm } from './confirm.js';
 import { cookRecipe } from './cook.js';
 import { openOverlay, closeOverlay } from './render.js';
 import { splitAmt, importFromUrl, ocrImages, fromText, findUrl } from './recipeimport.js';
+import { isDataImage, shrinkImage, fetchRemoteImage, ensureImage, storageRoom } from './recipeimage.js';
 import { isMeal } from './meals.js';
 import { shopRecipes } from './mealsui.js';
 
@@ -98,12 +99,75 @@ export function renderRecipeEditor(body, id) {
   fav.dataset.fk = 'rec-fav';
   const favLabel = el('label', 'rec-fav');
   favLabel.append(fav, el('span', null, 'Favorit'));
-  let image = x ? x.image : null;
+  // Bild: image ist der aktuelle Stand im Dialog, imgSrc eine noch nicht geladene Bildadresse vom Link
+  let image = x && isDataImage(x.image) ? x.image : null;
+  let initImage = image;
+  let imgSrc = x && !image && !x.imgOff ? x.image : null;
+  let imgRemoved = false;
+  let imgUser = false; // selbst gewaehlt (Foto oder Screenshot): Link-Import ersetzt es nicht
+  let imgToken = 0; // spaetere Auswahl gewinnt gegen ein langsam ladendes Bild
   const init = { name: f.name.value, cat: f.cat.value, servings: f.servings.value, time: f.time.value, ingredients: f.ingredients.value, steps: f.steps.value, url: f.url.value, fav: fav.checked };
 
   const msg = el('p', 'set-msg');
   msg.setAttribute('role', 'status');
   const parts = [];
+
+  const imgPrev = el('div', 'rec-img-prev');
+  const shots = el('div', 'rec-shots');
+  shots.hidden = true;
+  const imgFile = el('input', 'sr');
+  imgFile.type = 'file';
+  imgFile.accept = 'image/*';
+  imgFile.dataset.fk = 'rec-img-file';
+  imgFile.tabIndex = -1;
+  imgFile.setAttribute('aria-hidden', 'true');
+  const imgPick = button('btn-ghost', 'Bild wählen', () => imgFile.click(), 'Eigenes Bild vom Gericht wählen', 'rec-img-pick');
+  const imgDel = button('btn-link btn-danger', 'Bild entfernen', () => { setImage(null); imgRemoved = true; imgUser = false; }, 'Bild entfernen', 'rec-img-del');
+  let loadingImg = false;
+  function showImage() {
+    imgPrev.classList.toggle('is-empty', !image);
+    if (image) {
+      const im = el('img');
+      im.alt = 'Bild vom Gericht';
+      im.src = image;
+      imgPrev.replaceChildren(im);
+    } else imgPrev.replaceChildren(el('span', null, loadingImg ? 'Bild wird geladen …' : 'Kein Bild'));
+    imgDel.hidden = !image;
+    [...shots.querySelectorAll('.rec-shot')].forEach((b) => b.setAttribute('aria-pressed', b.dataset.img === image ? 'true' : 'false'));
+  }
+  function setImage(d) { imgToken++; if (d) imgRemoved = false; loadingImg = false; image = d; imgSrc = null; showImage(); }
+  // Bild von einer Adresse laden, ohne eine spaetere Auswahl zu ueberschreiben
+  function loadRemote(src) {
+    const tok = ++imgToken;
+    imgSrc = src;
+    loadingImg = true;
+    showImage();
+    fetchRemoteImage(src).then((d) => { if (tok === imgToken) { image = d; imgSrc = null; } })
+      .catch(() => { /* Adresse bleibt gemerkt, beim Oeffnen im Kochmodus wird es erneut versucht */ })
+      .finally(() => { if (tok === imgToken) { loadingImg = false; showImage(); } });
+  }
+  imgFile.addEventListener('change', async () => {
+    const fl = imgFile.files && imgFile.files[0];
+    imgFile.value = '';
+    if (!fl) return;
+    try { setImage(await shrinkImage(fl)); imgUser = true; } catch (e) { msg.textContent = 'Das Bild ließ sich nicht öffnen. Bitte ein anderes wählen.'; }
+  });
+  const imgActions = el('div', 'rec-img-actions');
+  imgActions.append(imgPick, imgDel, imgFile);
+  const imgRow = el('div', 'rec-img');
+  imgRow.append(imgPrev, imgActions);
+  // Altes Rezept ohne gespeichertes Bild: im Hintergrund nachholen
+  if (x && !image && !x.imgOff) {
+    loadingImg = navigator.onLine;
+    const tok = imgToken;
+    ensureImage(x).then((d) => {
+      if (tok !== imgToken) return;
+      loadingImg = false;
+      if (d) { image = d; initImage = d; imgSrc = null; }
+      showImage();
+    });
+  }
+  showImage();
 
   // Import (nur beim Anlegen): Link oder Screenshots fuellen die Felder, danach ist alles bearbeitbar
   if (isNew) {
@@ -135,12 +199,33 @@ export function renderRecipeEditor(body, id) {
       try {
         const txt = await ocrImages(files, (n, p) => { msg.textContent = 'Bild ' + n + ' von ' + files.length + ' wird gelesen … ' + p + ' %'; });
         fill(fromText(txt, f.name.value.trim()));
+        await offerShots(files);
       } catch (e) { msg.textContent = 'Die Bilder ließen sich nicht lesen. Schärfere Ausschnitte probieren oder von Hand eintragen.'; }
       finally { pick.disabled = false; }
     });
     imp.append(el('span', 'set-label', 'Importieren'), linkRow, pick, file,
-      el('p', 'hint', 'Der Link geht zum Lesen an den Dienst r.jina.ai. Screenshots werden nur auf diesem Gerät gelesen.'));
+      el('p', 'hint', 'Der Link geht zum Lesen an den Dienst r.jina.ai, die Bildadresse zum Verkleinern an wsrv.nl. Screenshots werden nur auf diesem Gerät gelesen.'));
     parts.push(imp);
+  }
+
+  // Nach dem Screenshot-Import: welcher Screenshot zeigt das Gericht? Ohne Auswahl der erste.
+  async function offerShots(files) {
+    const thumbs = [];
+    for (const fl of files) { try { thumbs.push(await shrinkImage(fl, true)); } catch (e) { /* Bild ueberspringen */ } }
+    if (!thumbs.length) return;
+    if (!image && !loadingImg) setImage(thumbs[0]);
+    if (thumbs.length < 2) { showImage(); return; }
+    shots.replaceChildren(el('span', 'set-label', 'Welches Bild zeigt das Gericht?'), ...thumbs.map((d, i) => {
+      const b = button('rec-shot', null, () => { setImage(d); imgUser = true; }, 'Screenshot ' + (i + 1) + ' als Bild nehmen', 'rec-shot-' + i);
+      b.dataset.img = d;
+      const im = el('img');
+      im.alt = '';
+      im.src = d;
+      b.append(im);
+      return b;
+    }));
+    shots.hidden = false;
+    showImage();
   }
 
   function fill(r) {
@@ -152,14 +237,16 @@ export function renderRecipeEditor(body, id) {
     if (r.servings) f.servings.value = r.servings;
     if (r.time) f.time.value = r.time;
     if (r.url) f.url.value = r.url;
-    if (r.image) image = r.image;
+    if (r.image && !imgUser) loadRemote(r.image);
     if ((r.ingredients || []).length) f.ingredients.value = ingText(r.ingredients);
     if ((r.steps || []).length) f.steps.value = r.steps.join('\n');
   }
 
   const row1 = el('div', 'plan-row');
   row1.append(field('Kategorie', f.cat), field('Portionen', f.servings), field('Zeit (Min)', f.time));
-  parts.push(field('Name', f.name), row1, dl, field('Zutaten (eine pro Zeile)', f.ingredients), field('Schritte (einer pro Zeile)', f.steps), field('Link (optional)', f.url), favLabel);
+  const imgField = el('div', 'set-field');
+  imgField.append(el('span', 'set-label', 'Bild vom Gericht'), imgRow, shots);
+  parts.push(field('Name', f.name), row1, dl, field('Zutaten (eine pro Zeile)', f.ingredients), field('Schritte (einer pro Zeile)', f.steps), field('Link (optional)', f.url), imgField, favLabel);
 
   const foot = el('div', 'leave-foot');
   if (x) {
@@ -177,21 +264,30 @@ export function renderRecipeEditor(body, id) {
       const rawUrl = f.url.value.trim();
       if (rawUrl && !/^https?:\/\//i.test(rawUrl) && /^[\w-]+(\.[\w-]+)+/.test(rawUrl)) f.url.value = 'https://' + rawUrl;
       if (f.url.value.trim() && !findUrl(f.url.value)) { msg.textContent = 'Der Link sieht nicht richtig aus. Bitte prüfen oder leer lassen.'; f.url.focus(); return; }
+      if (image && image !== initImage && !storageRoom()) { msg.textContent = 'Der Speicher auf diesem Gerät ist fast voll. Bitte das Bild entfernen oder ein paar alte Rezepte löschen.'; return; }
       const val = {
         name, cat: f.cat.value.trim().slice(0, 30), servings: Math.min(50, Math.max(1, Math.round(Number(f.servings.value) || 1))),
         time: Math.min(1440, Math.max(0, Math.round(Number(f.time.value) || 0))), ingredients: parseIngredients(f.ingredients.value),
         steps: parseSteps(f.steps.value), url: findUrl(f.url.value), fav: fav.checked
       };
       if (isNew) {
-        const rec = { id: 'c' + newId(), name: val.name, url: val.url, steps: val.steps, servings: val.servings, yieldText: 'Portionen', time: val.time, image: image || null, ingredients: val.ingredients, status: 'saved', at: newId() };
+        const rec = { id: 'c' + newId(), name: val.name, url: val.url, steps: val.steps, servings: val.servings, yieldText: 'Portionen', time: val.time, image: image || imgSrc || null, ingredients: val.ingredients, status: 'saved', at: newId() };
         if (val.cat) rec.cat = val.cat;
         if (val.fav) rec.fav = true;
+        if (imgRemoved && !rec.image) rec.imgOff = true;
         write('recipes', (l) => { l.push(rec); });
+        // Bild lud beim Speichern noch: im Hintergrund fertig holen und ins Rezept schreiben
+        if (!isDataImage(rec.image) && rec.image) ensureImage(rec);
       } else {
         // Nur Geaendertes schreiben, damit eine Aenderung von der Partner-App in der Zwischenzeit erhalten bleibt
         const now = { name: f.name.value, cat: f.cat.value, servings: f.servings.value, time: f.time.value, ingredients: f.ingredients.value, steps: f.steps.value, url: f.url.value, fav: fav.checked };
+        const imgChanged = image !== initImage || (imgRemoved && !image);
         write('recipes', (l) => l.map((r) => {
           if (String(r.id) !== String(x.id)) return r;
+          if (imgChanged) {
+            // Entfernen merkt sich imgOff, damit das Bild nicht vom Link nachgeholt wird
+            if (image) { r.image = image; delete r.imgOff; } else { r.image = null; r.imgOff = true; }
+          }
           Object.keys(now).forEach((k) => {
             if (now[k] === init[k]) return;
             if (k === 'cat' || k === 'fav') { if (val[k]) r[k] = val[k]; else delete r[k]; } else r[k] = val[k];

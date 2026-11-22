@@ -1,6 +1,7 @@
 // Kochmodus: Aktionen auf Rezepten, Schritte, Portionen, Timer.
 import { data, ui, setUi, write, newId } from './state.js';
-import { el, pad, scaleQ, stepMinutes, safeUrl } from './util.js';
+import { el, icon, pad, scaleQ, stepMinutes, safeUrl } from './util.js';
+import { isDataImage, ensureImage } from './recipeimage.js';
 import { askConfirm } from './confirm.js';
 import { itemBelongsTo } from './core.js';
 
@@ -109,6 +110,25 @@ function applyTimer() {
 }
 export const updateTimerView = applyTimer;
 
+// Bild vom Gericht oben in der Zutatenspalte, ohne Bild ein ruhiger Platzhalter
+function renderCookImage(cr) {
+  const box = $('cook-img');
+  const src = isDataImage(cr.image) ? cr.image : null;
+  if (box.dataset.src === (src || '-')) { if (!src) ensureImage(cr); return; }
+  box.dataset.src = src || '-';
+  box.classList.toggle('is-empty', !src);
+  if (src) {
+    const img = el('img');
+    img.alt = 'Bild vom Gericht: ' + cr.name;
+    img.decoding = 'async';
+    img.src = src;
+    box.replaceChildren(img);
+  } else {
+    box.replaceChildren(icon('dish', 26), el('span', null, 'Kein Bild'));
+    ensureImage(cr);
+  }
+}
+
 export function renderCook() {
   const root = $('cook');
   const cr = currentRecipe();
@@ -128,6 +148,7 @@ export function renderCook() {
   if (href) { link.href = href; link.rel = 'noopener noreferrer'; link.target = '_blank'; }
   else link.removeAttribute('href');
 
+  renderCookImage(cr);
   $('serv-label').textContent = ck.servings + ' ' + (cr.yieldText || 'Portionen');
   $('cook-ingr').replaceChildren(...cr.ingredients.map((z) => {
     const row = el('div', 'ingr');
