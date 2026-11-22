@@ -2,6 +2,8 @@
 // Geraet mit Tesseract) oder eingefuegter Text. Erkennungslogik uebernommen aus der Partner-App, hier ohne DOM,
 // damit sie unter Node testbar ist (tests/recipeimport.test.mjs). Netzwerk und Tesseract werden hereingereicht.
 
+import { fromLdNutrition } from './nutrition.js';
+
 const UNITS = 'kg|kilo|gramm|g|gr|mg|ml|cl|dl|l|liter|cm|mm|el|tl|esslöffel|teelöffel|stängel|msp|prise[n]?|bund|bd|dose[n]?|pck|pkg|packung(?:en)?|päckchen|becher|glas|gläser|tasse[n]?|stück|stk|scheibe[n]?|zehe[n]?|handvoll|zweig[e]?|blatt|blätter|knolle[n]?|kopf|köpfe|stange[n]?|stiel[e]?|würfel|tüte[n]?|beutel|flasche[n]?|schuss|spritzer|cup[s]?|tbsp|tsp|oz|lb';
 const AMT_RE = new RegExp('^((?:ca\\.?\\s*|etwa\\s*)?[\\d½¼¾⅓⅔⅛][\\d½¼¾⅓⅔⅛.,/\\s–-]*)\\s*(?:(' + UNITS + ')\\.?(?=\\s|$))?\\s*(.*)$', 'i');
 const STOP_HEAD = /^(zubereitung|anleitung|so geht'?s|so wird'?s gemacht|instructions|method|schritt|nährwerte|notizen|tipps?|kommentare)\b/i;
@@ -152,7 +154,7 @@ export function fromLdJson(html) {
           return {
             name: cleanLine(r.name || '').slice(0, 60), ingredients: items, steps: ldSteps(r.recipeInstructions),
             servings: yieldNum(r.recipeYield), time: isoMin(r.totalTime) || (isoMin(r.prepTime) + isoMin(r.cookTime)) || 0,
-            image: ldImage(r.image), cat: ldCategory(r)
+            image: ldImage(r.image), cat: ldCategory(r), nutr: fromLdNutrition([].concat(r.nutrition || [])[0])
           };
         }
       }

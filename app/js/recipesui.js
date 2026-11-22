@@ -9,6 +9,7 @@ import { openOverlay, closeOverlay } from './render.js';
 import { splitAmt, importFromUrl, ocrImages, fromText, findUrl } from './recipeimport.js';
 import { isDataImage, shrinkImage, fetchRemoteImage, ensureImage, storageRoom } from './recipeimage.js';
 import { isMeal } from './meals.js';
+import { estimate, okGrams } from './nutrition.js';
 import { shopRecipes } from './mealsui.js';
 
 const $ = (id) => document.getElementById(id);
@@ -107,6 +108,25 @@ export function renderRecipeEditor(body, id) {
   let imgUser = false; // selbst gewaehlt (Foto oder Screenshot): Link-Import ersetzt es nicht
   let imgToken = 0; // spaetere Auswahl gewinnt gegen ein langsam ladendes Bild
   const init = { name: f.name.value, cat: f.cat.value, servings: f.servings.value, time: f.time.value, ingredients: f.ingredients.value, steps: f.steps.value, url: f.url.value, fav: fav.checked };
+
+  // Naehrwerte pro Portion: gespeichert (Seite oder eigene Angabe), leeres Feld heisst schaetzen
+  const NK = [['kcal', 'kcal'], ['p', 'Eiweiß (g)'], ['f', 'Fett (g)'], ['c', 'KH (g)']];
+  let nutrBase = x && x.nutr && typeof x.nutr === 'object' ? { ...x.nutr } : null;
+  const nf = {};
+  NK.forEach(([k]) => { nf[k] = input('number', nutrBase && Number.isFinite(nutrBase[k]) && nutrBase[k] >= 0 && nutrBase[k] < 10000 ? Math.round(nutrBase[k]) : '', 'rec-nutr-' + k, { min: 0, max: 9999, inputMode: 'numeric' }); });
+  let nInit = {};
+  const markNutrInit = () => { NK.forEach(([k]) => { nInit[k] = nf[k].value; }); };
+  markNutrInit();
+  const nutrHint = el('p', 'hint');
+  function updateNutrHint() {
+    const e = estimate({ servings: f.servings.value, ingredients: parseIngredients(f.ingredients.value) });
+    NK.forEach(([k]) => { nf[k].placeholder = e.ok ? 'ca. ' + e[k] : 'k. A.'; });
+    const t = (nutrBase && nutrBase.src === 'page' ? 'Werte von der Rezeptseite. ' : '') + 'Leere Felder schätzt die App aus den Zutaten.';
+    nutrHint.replaceChildren(t);
+    if (e.unknown.length) nutrHint.append(el('br'), 'Nicht erkannt: ' + e.unknown.slice(0, 6).join(', ') + (e.unknown.length > 6 ? ' und weitere' : '') + '.');
+  }
+  f.ingredients.addEventListener('input', updateNutrHint);
+  f.servings.addEventListener('input', updateNutrHint);
 
   const msg = el('p', 'set-msg');
   msg.setAttribute('role', 'status');
@@ -238,15 +258,27 @@ export function renderRecipeEditor(body, id) {
     if (r.time) f.time.value = r.time;
     if (r.url) f.url.value = r.url;
     if (r.image && !imgUser) loadRemote(r.image);
+    // Werte der Seite uebernehmen. Ein zweiter Import ohne Werte loescht die des ersten Links.
+    if (r.nutr || (nutrBase && nutrBase.src === 'page')) {
+      nutrBase = r.nutr ? { ...r.nutr, src: 'page' } : null;
+      NK.forEach(([k]) => { nf[k].value = r.nutr && Number.isFinite(r.nutr[k]) ? r.nutr[k] : ''; });
+      markNutrInit();
+    }
     if ((r.ingredients || []).length) f.ingredients.value = ingText(r.ingredients);
     if ((r.steps || []).length) f.steps.value = r.steps.join('\n');
+    updateNutrHint();
   }
 
   const row1 = el('div', 'plan-row');
   row1.append(field('Kategorie', f.cat), field('Portionen', f.servings), field('Zeit (Min)', f.time));
   const imgField = el('div', 'set-field');
   imgField.append(el('span', 'set-label', 'Bild vom Gericht'), imgRow, shots);
-  parts.push(field('Name', f.name), row1, dl, field('Zutaten (eine pro Zeile)', f.ingredients), field('Schritte (einer pro Zeile)', f.steps), field('Link (optional)', f.url), imgField, favLabel);
+  const nutrRow = el('div', 'rec-nutr');
+  nutrRow.append(...NK.map(([k, label]) => field(label, nf[k])));
+  const nutrField = el('div', 'set-field');
+  nutrField.append(el('span', 'set-label', 'Nährwerte pro Portion'), nutrRow, nutrHint);
+  updateNutrHint();
+  parts.push(field('Name', f.name), row1, dl, field('Zutaten (eine pro Zeile)', f.ingredients), field('Schritte (einer pro Zeile)', f.steps), field('Link (optional)', f.url), imgField, nutrField, favLabel);
 
   const foot = el('div', 'leave-foot');
   if (x) {
@@ -270,11 +302,18 @@ export function renderRecipeEditor(body, id) {
         time: Math.min(1440, Math.max(0, Math.round(Number(f.time.value) || 0))), ingredients: parseIngredients(f.ingredients.value),
         steps: parseSteps(f.steps.value), url: findUrl(f.url.value), fav: fav.checked
       };
+      // Naehrwerte: nur bei Aenderung als eigene Angabe speichern, alle Felder leer heisst wieder schaetzen
+      const nv = {};
+      NK.forEach(([k]) => { const v = Number(String(nf[k].value).replace(',', '.')); if (nf[k].value.trim() !== '' && Number.isFinite(v) && v >= 0) nv[k] = Math.min(9999, Math.round(v)); });
+      const nChanged = NK.some(([k]) => nf[k].value !== nInit[k]);
+      let nutr = nutrBase;
+      if (nChanged) nutr = Object.keys(nv).length ? Object.assign(nv, nutrBase && okGrams(nutrBase.g) ? { g: nutrBase.g } : {}, { src: 'user' }) : null;
       if (isNew) {
         const rec = { id: 'c' + newId(), name: val.name, url: val.url, steps: val.steps, servings: val.servings, yieldText: 'Portionen', time: val.time, image: image || imgSrc || null, ingredients: val.ingredients, status: 'saved', at: newId() };
         if (val.cat) rec.cat = val.cat;
         if (val.fav) rec.fav = true;
         if (imgRemoved && !rec.image) rec.imgOff = true;
+        if (nutr) rec.nutr = nutr;
         write('recipes', (l) => { l.push(rec); });
         // Bild lud beim Speichern noch: im Hintergrund fertig holen und ins Rezept schreiben
         if (!isDataImage(rec.image) && rec.image) ensureImage(rec);
@@ -288,6 +327,7 @@ export function renderRecipeEditor(body, id) {
             // Entfernen merkt sich imgOff, damit das Bild nicht vom Link nachgeholt wird
             if (image) { r.image = image; delete r.imgOff; } else { r.image = null; r.imgOff = true; }
           }
+          if (nChanged) { if (nutr) r.nutr = nutr; else delete r.nutr; }
           Object.keys(now).forEach((k) => {
             if (now[k] === init[k]) return;
             if (k === 'cat' || k === 'fav') { if (val[k]) r[k] = val[k]; else delete r[k]; } else r[k] = val[k];

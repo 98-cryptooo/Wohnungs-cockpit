@@ -217,6 +217,13 @@ test('Review 6: Datum leeren bei wiederkehrender Aufgabe heisst heute', () => {
   assert.equal(t.due, '2026-11-22');
 });
 
+test('Taegliche Aufgaben stehen nicht in Heute zu tun, auch nicht ueberfaellig', () => {
+  const now = at('2026-11-22');
+  assert.equal(isForToday(newTask(1, { text: 'Katzenklo', every: 1, due: '2026-11-22' }, now.date), now), false);
+  assert.equal(isForToday(newTask(2, { text: 'Katzenklo', every: 1, due: '2026-11-20' }, now.date), now), false);
+  assert.equal(isForToday(newTask(3, { text: 'Muell', every: 2, due: '2026-11-22' }, now.date), now), true);
+});
+
 test('Review 4: Erledigte Heute-Eintraege nur am Tag der Erledigung', () => {
   const t = { id: 1, text: 'Post', who: 'Beide', done: false, today: true };
   toggleOnce(t, '2026-11-22');

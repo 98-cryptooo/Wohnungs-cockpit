@@ -61,7 +61,8 @@ test('JSON-LD einer Rezeptseite', () => {
       '@type': 'Recipe', name: 'Ofengemüse &amp; Feta', recipeYield: ['2', '2 Portionen'], totalTime: 'PT45M', recipeCategory: 'Hauptgericht',
       recipeIngredient: ['400 g Kartoffeln', '1 Paprika', '200 g Feta'],
       recipeInstructions: [{ '@type': 'HowToStep', text: 'Gemüse schneiden.' }, { '@type': 'HowToStep', text: 'Im Ofen 40 Minuten backen.' }],
-      image: { url: 'https://beispiel.example/bild.jpg' }
+      image: { url: 'https://beispiel.example/bild.jpg' },
+      nutrition: { '@type': 'NutritionInformation', calories: '480 kcal', proteinContent: '18,5 g', fatContent: '22 g', carbohydrateContent: '45 g', servingSize: '1 Portion' }
     }]
   }) + '</script></html>';
   const r = fromLdJson(html);
@@ -71,6 +72,7 @@ test('JSON-LD einer Rezeptseite', () => {
   assert.equal(r.cat, 'Hauptgericht');
   assert.deepEqual(r.steps, ['Gemüse schneiden.', 'Im Ofen 40 Minuten backen.']);
   assert.equal(r.ingredients.length, 3);
+  assert.deepEqual(r.nutr, { kcal: 480, p: 19, f: 22, c: 45 });
 });
 
 test('Link-Import ueber r.jina.ai: JSON-LD mit Schritten reicht, nur ein Abruf', async () => {

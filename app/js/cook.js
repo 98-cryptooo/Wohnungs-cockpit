@@ -2,6 +2,7 @@
 import { data, ui, setUi, write, newId } from './state.js';
 import { el, icon, pad, scaleQ, stepMinutes, safeUrl } from './util.js';
 import { isDataImage, ensureImage } from './recipeimage.js';
+import { nutritionFor } from './nutrition.js';
 import { askConfirm } from './confirm.js';
 import { itemBelongsTo } from './core.js';
 
@@ -129,6 +130,45 @@ function renderCookImage(cr) {
   }
 }
 
+// Naehrwerte unter dem Bild: pro Portion und pro 100 g. Geschaetzte Zahlen tragen "ca.".
+const NUTR = [['kcal', 'kcal'], ['p', 'Eiweiß g'], ['f', 'Fett g'], ['c', 'KH g']];
+export function nutrSource(n) {
+  const anyEst = NUTR.some(([k]) => n.est[k]) || NUTR.some(([k]) => n.per100[k] != null && n.gEst);
+  if (NUTR.every(([k]) => n.portion[k] == null)) return 'Zu wenig Zutaten erkannt';
+  const base = n.src === 'page' ? 'Laut Rezeptseite' : n.src === 'user' ? 'Eigene Angabe' : '';
+  if (!base) return 'Geschätzt aus den Zutaten';
+  return anyEst ? base + ', Rest geschätzt' : base;
+}
+function renderCookNutr(cr) {
+  const n = nutritionFor(cr);
+  // Gar nichts erkannt: eine Zeile statt acht Mal "k. A."
+  if (NUTR.every(([k]) => n.portion[k] == null)) { $('cook-nutr').replaceChildren(el('p', 'nutr-src', 'Nährwerte: k. A., zu wenig Zutaten erkannt')); return; }
+  const t = el('table', 'nutr');
+  const head = el('tr');
+  head.append(el('td'), ...NUTR.map(([, label]) => { const th = el('th', null, label); th.scope = 'col'; return th; }));
+  const row = (label, vals, est) => {
+    const tr = el('tr');
+    const th = el('th', 'nutr-row', label);
+    th.scope = 'row';
+    tr.append(th, ...NUTR.map(([k]) => {
+      const td = el('td');
+      if (vals[k] == null) td.append(el('span', 'nutr-na', 'k. A.'));
+      else {
+        if (est(k)) td.append(el('span', 'nutr-ca', 'ca. '));
+        td.append(String(vals[k]));
+      }
+      return td;
+    }));
+    return tr;
+  };
+  const thead = el('thead');
+  thead.append(head);
+  const tbody = el('tbody');
+  tbody.append(row('pro Portion', n.portion, (k) => n.est[k]), row('pro 100 g', n.per100, (k) => n.est[k] || n.gEst));
+  t.append(thead, tbody);
+  $('cook-nutr').replaceChildren(t, el('p', 'nutr-src', nutrSource(n)));
+}
+
 export function renderCook() {
   const root = $('cook');
   const cr = currentRecipe();
@@ -149,6 +189,7 @@ export function renderCook() {
   else link.removeAttribute('href');
 
   renderCookImage(cr);
+  renderCookNutr(cr);
   $('serv-label').textContent = ck.servings + ' ' + (cr.yieldText || 'Portionen');
   $('cook-ingr').replaceChildren(...cr.ingredients.map((z) => {
     const row = el('div', 'ingr');

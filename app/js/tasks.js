@@ -133,8 +133,10 @@ export function taskState(t, now) {
 }
 
 // Gehoert die Aufgabe heute in "Heute zu tun"? Offene Eintraege mit today, dazu Faelliges und Ueberfaelliges.
+// Taegliche Aufgaben (every 1) bleiben nur in Diese Woche, sonst stehen sie doppelt und verdraengen die einmaligen.
 export function isForToday(t, now) {
   if (t.note) return false;
+  if (validEvery(t.every) === 1) return false;
   // Alte "Heute zu tun"-Eintraege: offen immer, erledigt nur am Tag der Erledigung (sonst waechst die Liste endlos)
   if (t.today && !isRecurring(t)) return !t.done || t.doneAt === now.date;
   const k = taskState(t, now).kind;
