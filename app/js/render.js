@@ -141,13 +141,23 @@ function toggleShop(at) {
   });
 }
 
+// Erledigte entfernen: nur selbst eingetragene Artikel. Rezept-Zutaten bleiben, sie gehen mit
+// "Heute kochen" oder "Abwählen" weg und zählen für "schon gekauft" beim Essensplan (BOUGHT_DAYS).
+async function clearDoneShop(n) {
+  if (!(await askConfirm(n === 1 ? '1 erledigten Artikel entfernen?' : n + ' erledigte Artikel entfernen?', 'Entfernen'))) return;
+  write('shop', (list) => list.filter((x) => !(x.done && !shopRecipeKey(x))));
+}
+const shopRecipeKey = (x) => {
+  const rec = recipeForItem(data.recipes, x);
+  return rec ? 'rec:' + rec.id : (x.r ? 'r:' + x.r : (x.u ? 'g:' + x.g : null));
+};
+
 export function renderShop() {
   // Zuordnung Posten zu Rezept: ueber r (ID), u (Link) oder u mit g (Name), siehe core.js itemBelongsTo.
   // Ohne passendes Rezept (die Partner-App hat es noch nicht hochgeladen) gruppiert der Posten nach r oder g.
   const items = data.shop.map((x) => {
     const rec = recipeForItem(data.recipes, x);
-    const key = rec ? 'rec:' + rec.id : (x.r ? 'r:' + x.r : (x.u ? 'g:' + x.g : null));
-    return { x, rec, store: storeOf(x), recipe: key };
+    return { x, rec, store: storeOf(x), recipe: shopRecipeKey(x) };
   });
   const byDone = (a, b) => (a.x.done ? 1 : 0) - (b.x.done ? 1 : 0);
 
@@ -215,6 +225,8 @@ export function renderShop() {
     groups.push(g);
   });
   if (!groups.length) groups.push(el('div', 'empty', 'Noch nichts auf der Liste.'));
+  const doneN = items.filter((i) => i.x.done && !i.recipe).length;
+  if (doneN) groups.push(button('btn-link shop-clear', 'Erledigte entfernen (' + doneN + ')', () => clearDoneShop(doneN), 'Erledigte Artikel entfernen', 'shop-clear'));
   $('shop-list').replaceChildren(...groups);
   $('shop-title').textContent = 'Einkauf · ' + data.shop.filter((x) => !x.done).length + ' offen';
   $('btn-saved').textContent = 'Sammlung · ' + data.recipes.filter((r) => r.status === 'saved').length;

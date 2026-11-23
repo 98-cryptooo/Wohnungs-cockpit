@@ -350,6 +350,7 @@ h2, h3, p { margin: 0; }
 .group-head { display: flex; align-items: center; gap: 8px; padding: 10px 0 4px; }
 .group-head h3 { font-size: 16px; font-weight: 600; color: var(--text); }
 .group-count { font-size: 14px; color: var(--muted); }
+.shop-clear { align-self: flex-start; margin-top: 8px; padding: 0 4px; }
 .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 .dot-food { background: #7FC8A9; }
 .dot-drug { background: #B9A3F0; }
