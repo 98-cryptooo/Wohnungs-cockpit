@@ -1,7 +1,7 @@
 // Tests fuer den Essensplan (fiktive Rezepte).
 //   node tests/meals.test.mjs
 import assert from 'node:assert/strict';
-import { isStaleMeal, mealId, parseMealId, planDays, mealsOn, setMeal, plannedRecipes, missingIngredients, shoppingFor, isMeal } from '../app/js/meals.js';
+import { isStaleMeal, mealId, parseMealId, planDays, mealsOn, setMeal, plannedRecipes, missingIngredients, shoppingFor, isMeal, setMealServings, mealServings, plannedServings, scaledIngredients, rescaleShop } from '../app/js/meals.js';
 import { normalizeEntry } from '../app/js/core.js';
 
 const tests = [];
@@ -71,6 +71,40 @@ test('Alte Plan-Eintraege (ueber 30 Tage) werden als veraltet erkannt, andere ca
   assert.equal(isStaleMeal({ id: 'meal-2026-10-23-abend' }, '2026-11-22'), false);
   assert.equal(isStaleMeal({ id: 'meal-2026-10-22-abend' }, '2026-11-22'), true);
   assert.equal(isStaleMeal({ id: 'leave-licht' }, '2026-11-22'), false);
+});
+
+test('Portionen: Platz merkt sich n, ohne n gilt das Rezept, doppelt geplant wird zusammengezaehlt', () => {
+  const rec = { id: 'r9', name: 'Pfanne', servings: 2, ingredients: [] };
+  let l = setMeal([], '2026-11-24', 'abend', 'r9', 4);
+  assert.equal(mealsOn(l, '2026-11-24').abend.n, 4);
+  l = setMealServings(l, '2026-11-24', 'abend', 3);
+  assert.equal(mealServings(mealsOn(l, '2026-11-24').abend, rec), 3);
+  assert.equal(mealServings({ id: 'x', rid: 'r9' }, rec), 2);
+  l = setMeal(l, '2026-11-25', 'mittag', 'r9');
+  assert.deepEqual(plannedServings(l, [rec], planDays('2026-11-24', 7)), { r9: 5 });
+});
+
+test('Einkauf rechnet Mengen auf die gewuenschten Portionen um, auch Menge im Namen', () => {
+  const rec = { id: 'r8', name: 'Hähnchenpfanne', servings: 2, ingredients: [{ q: '', t: 'Champignons (300 g)' }, { q: '', t: 'Sesamöl (2 TL (14 ml))' }, { q: '1', t: 'Zwiebel' }, { q: '', t: 'Salz' }] };
+  let n = 0;
+  const items = shoppingFor([], [Object.assign({}, rec, { want: 4 })], () => n++);
+  assert.deepEqual(items.map((i) => [i.q, i.t]), [['600 g', 'Champignons'], ['4 TL (28 ml)', 'Sesamöl'], ['2', 'Zwiebel'], [undefined, 'Salz']]);
+  // ohne want: Originalmengen, aber sauber getrennt
+  assert.equal(shoppingFor([], [rec], () => n++)[0].q, '300 g');
+  assert.deepEqual(scaledIngredients(rec, 1)[2], { q: '0,5', t: 'Zwiebel' });
+});
+
+test('Offene Posten werden umgerechnet, abgehakte und fremde bleiben', () => {
+  const rec = { id: 'r7', name: 'Suppe', servings: 2, ingredients: [{ q: '400 ml', t: 'Kokosmilch' }, { q: '1', t: 'Kürbis' }] };
+  const shop = [
+    { t: 'Kokosmilch', q: '400 ml', r: 'r7', g: 'Suppe', done: false, at: 1 },
+    { t: 'Kürbis', q: '1', r: 'r7', g: 'Suppe', done: true, at: 2 },
+    { t: 'Milch', done: false, at: 3 }
+  ];
+  const out = rescaleShop(shop, rec, 4);
+  assert.equal(out[0].q, '800 ml');
+  assert.equal(out[1].q, '1');
+  assert.equal(out[2], shop[2]);
 });
 
 let ok = 0;

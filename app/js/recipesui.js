@@ -2,7 +2,7 @@
 // mit Import per Link (r.jina.ai) und per Screenshots (Texterkennung auf dem Geraet).
 // Felder wie in der Partner-App, neu und optional: fav (Favorit), cat (Kategorie). Die Partner-App behaelt sie.
 import { data, write, newId } from './state.js';
-import { el, button, icon } from './util.js';
+import { el, button, icon, scaleQ } from './util.js';
 import { askConfirm } from './confirm.js';
 import { cookRecipe } from './cook.js';
 import { openOverlay, closeOverlay } from './render.js';
@@ -125,11 +125,45 @@ export function renderRecipeEditor(body, id) {
     nutrHint.replaceChildren(t);
     if (e.unknown.length) nutrHint.append(el('br'), 'Nicht erkannt: ' + e.unknown.slice(0, 6).join(', ') + (e.unknown.length > 6 ? ' und weitere' : '') + '.');
   }
-  f.ingredients.addEventListener('input', updateNutrHint);
-  f.servings.addEventListener('input', updateNutrHint);
-
   const msg = el('p', 'set-msg');
   msg.setAttribute('role', 'status');
+
+  // Portionen umrechnen: Aendert man die Portionen, rechnen die Mengen der Zutaten mit. Grundlage ist der Stand
+  // vor der ersten Aenderung (scaleBase), damit 2 -> 3 -> 2 wieder genau die Ausgangsmengen ergibt.
+  // "Nur Zahl ändern" stellt die Zutaten zurueck, falls nur eine falsch erkannte Portionenzahl korrigiert wird.
+  let scaleBase = null;
+  const servHint = el('p', 'hint rec-serv-hint');
+  servHint.hidden = true;
+  const servNum = () => Math.min(50, Math.max(1, Math.round(Number(f.servings.value) || 0)));
+  const scaleText = (txt, fac) => String(txt).split(/\r?\n/).map((l) => {
+    if (!l.trim()) return l;
+    const s = splitAmt(l.trim());
+    return s.q ? (scaleQ(s.q, fac) + ' ' + s.t).trim() : l;
+  }).join('\n');
+  function onServings() {
+    const n = Number(f.servings.value);
+    if (!(n >= 1 && n <= 50)) return;
+    if (!scaleBase) {
+      const from = Number(lastServ);
+      if (!(from >= 1)) { lastServ = f.servings.value; return; }
+      scaleBase = { n: from, txt: f.ingredients.value };
+    }
+    lastServ = f.servings.value;
+    if (servNum() === scaleBase.n) { f.ingredients.value = scaleBase.txt; servHint.hidden = true; scaleBase = null; updateNutrHint(); return; }
+    f.ingredients.value = scaleText(scaleBase.txt, servNum() / scaleBase.n);
+    servHint.replaceChildren('Mengen von ' + scaleBase.n + ' auf ' + servNum() + ' Portionen umgerechnet. ',
+      button('btn-link', 'Nur Zahl ändern', () => {
+        f.ingredients.value = scaleBase.txt;
+        scaleBase = null;
+        servHint.hidden = true;
+        updateNutrHint();
+      }, 'Mengen zurücksetzen und nur die Portionenzahl ändern', 'rec-serv-keep'));
+    servHint.hidden = false;
+    updateNutrHint();
+  }
+  let lastServ = f.servings.value;
+  f.ingredients.addEventListener('input', () => { scaleBase = null; servHint.hidden = true; updateNutrHint(); });
+  f.servings.addEventListener('input', onServings);
   const parts = [];
 
   const imgPrev = el('div', 'rec-img-prev');
@@ -255,6 +289,9 @@ export function renderRecipeEditor(body, id) {
     if (r.name && !f.name.value.trim()) f.name.value = r.name;
     if (r.cat && !f.cat.value.trim()) f.cat.value = r.cat;
     if (r.servings) f.servings.value = r.servings;
+    lastServ = f.servings.value;
+    scaleBase = null;
+    servHint.hidden = true;
     if (r.time) f.time.value = r.time;
     if (r.url) f.url.value = r.url;
     if (r.image && !imgUser) loadRemote(r.image);
@@ -278,7 +315,7 @@ export function renderRecipeEditor(body, id) {
   const nutrField = el('div', 'set-field');
   nutrField.append(el('span', 'set-label', 'Nährwerte pro Portion'), nutrRow, nutrHint);
   updateNutrHint();
-  parts.push(field('Name', f.name), row1, dl, field('Zutaten (eine pro Zeile)', f.ingredients), field('Schritte (einer pro Zeile)', f.steps), field('Link (optional)', f.url), imgField, nutrField, favLabel);
+  parts.push(field('Name', f.name), row1, servHint, dl, field('Zutaten (eine pro Zeile)', f.ingredients), field('Schritte (einer pro Zeile)', f.steps), field('Link (optional)', f.url), imgField, nutrField, favLabel);
 
   const foot = el('div', 'leave-foot');
   if (x) {

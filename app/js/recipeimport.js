@@ -22,13 +22,27 @@ export function cleanLine(s) {
   return decodeEnt(String(s || '')).replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/<[^>]+>/g, ' ')
     .replace(/^\s*(?:[*+•·▢☐□◻○●-]|\d+\.(?=\s)|\[[ xX]?\])\s*/, '').replace(/^\s*(?:▢|☐|□)\s*/, '').replace(/[*_`#]+/g, '').replace(/\s+/g, ' ').trim();
 }
-// "500 g Mehl" -> {q: '500 g', t: 'Mehl'}
+// Menge hinten in Klammern, wie bei Kochboxen: "Champignons (300 g)", "Sesamöl (2 TL (14 ml))"
+const TAIL_RE = /^(.+?)\s*\(\s*((?:ca\.?\s*|etwa\s*)?[\d½¼¾⅓⅔⅛][^()]*(?:\([^()]*\)[^()]*)?)\)\s*$/i;
+// "500 g Mehl" -> {q: '500 g', t: 'Mehl'}, "Mehl (500 g)" -> {q: '500 g', t: 'Mehl'}
 export function splitAmt(line) {
   const m = String(line).match(AMT_RE);
-  if (!m || !m[3]) return { q: '', t: String(line).trim() };
+  if (!m || !m[3]) {
+    const tm = String(line).trim().match(TAIL_RE);
+    if (tm) return { q: tm[2].trim(), t: tm[1].trim() };
+    return { q: '', t: String(line).trim() };
+  }
   let q = m[1].trim().replace(/\s*[–-]\s*/g, '-');
   if (m[2]) q += ' ' + m[2];
   return { q: q.trim(), t: m[3].replace(/^(?:x\s+)/i, '').trim() || String(line).trim() };
+}
+// Gespeicherte Zutat mit leerer Menge, deren Menge noch im Namen steht (aeltere Importe, Partner-App):
+// fuer Umrechnen und Einkauf trennen, ohne das Rezept selbst zu aendern.
+export function normIngr(z) {
+  if (!z) return { q: '', t: '' };
+  if (z.q) return z;
+  const s = splitAmt(z.t || '');
+  return s.q ? { q: s.q, t: s.t } : z;
 }
 function looksIngredient(s) {
   return s.length > 1 && s.length <= 70 && /[a-zäöüß]/i.test(s) && !/[.!?]$/.test(s.replace(/\b(ca|bzw|evtl|ggf|z\.b|stk|pck|el|tl)\.$/i, ''))

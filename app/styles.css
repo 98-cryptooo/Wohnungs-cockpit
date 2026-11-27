@@ -994,6 +994,9 @@ body:has(#night:not([hidden])) .rem-text { color: #B4A07A; }
 .pick-row .ev-when { margin-left: auto; font-size: 14px; color: var(--muted); }
 .pick-cur { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #26292E; margin-bottom: 6px; }
 .pick-cur .set-text { flex: 1 1 100%; }
+.pick-serv { flex: 1 1 220px; max-width: 280px; }
+.pick-serv .serv-label { font-size: 17px; }
+.serv-btn:disabled { opacity: .35; }
 .stack .meal-day:nth-child(n+8) { display: none; }
 
 /* ---- Rezepte (3.4) ---- */

@@ -164,6 +164,13 @@ test('HTML-Zeichen werden ohne DOM entschluesselt', () => {
   assert.equal(yieldFromText('Zutaten für 2 Personen').t, 'Portionen');
 });
 
+test('Menge hinten in Klammern wird abgetrennt, Beschreibungen in Klammern bleiben', () => {
+  assert.deepEqual(splitAmt('Champignons (300 g)'), { q: '300 g', t: 'Champignons' });
+  assert.deepEqual(splitAmt('Sesamöl (2 TL (14 ml))'), { q: '2 TL (14 ml)', t: 'Sesamöl' });
+  assert.deepEqual(splitAmt('Zwiebel (rot)'), { q: '', t: 'Zwiebel (rot)' });
+  assert.deepEqual(splitAmt('Chilipulver (nach Belieben)'), { q: '', t: 'Chilipulver (nach Belieben)' });
+});
+
 let ok = 0;
 for (const [name, fn] of tests) {
   try { await fn(); ok++; } catch (e) { console.error('FEHLER: ' + name + '\n  ' + e.message); }

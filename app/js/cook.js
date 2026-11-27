@@ -5,11 +5,14 @@ import { isDataImage, ensureImage } from './recipeimage.js';
 import { nutritionFor } from './nutrition.js';
 import { askConfirm } from './confirm.js';
 import { itemBelongsTo } from './core.js';
+import { normIngr } from './recipeimport.js';
+import { scaledIngredients, rescaleShop, clampServ } from './meals.js';
 
 const $ = (id) => document.getElementById(id);
 
 // ---- Aktionen ---------------------------------------------------------------
-export function cookRecipe(rid) {
+// servings: gewuenschte Portionen (z. B. aus dem Essensplan), sonst die des Rezepts
+export function cookRecipe(rid, servings) {
   const r = data.recipes.find((x) => x.id === rid);
   if (!r) return;
   write('recipes', (list) => list.map((x) => {
@@ -17,7 +20,7 @@ export function cookRecipe(rid) {
     else if (x.status === 'today') x.status = 'list';
     return x;
   }));
-  setUi({ cook: { rid, step: 0, servings: r.servings || 1 }, open: null });
+  setUi({ cook: { rid, step: 0, servings: servings > 0 ? clampServ(servings) : (r.servings || 1) }, open: null });
 }
 
 export function openTodayCook() {
@@ -36,7 +39,7 @@ export function rebuy(rid) {
   if (!r) return;
   write('recipes', (list) => list.map((x) => { if (x.id === rid) x.status = 'list'; return x; }));
   write('shop', (list) => list.filter((x) => !itemBelongsTo(x, r)).concat(
-    r.ingredients.map((z) => ({ t: z.t, q: z.q || undefined, g: r.name, r: rid, done: false, at: newId() }))
+    scaledIngredients(r).map((z) => ({ t: z.t, q: z.q || undefined, g: r.name, r: rid, done: false, at: newId() }))
   ));
 }
 
@@ -72,7 +75,12 @@ export function isCookOpen() { return !!currentRecipe(); }
 function setServings(delta) {
   const ck = ui.cook;
   if (!ck) return;
-  setUi({ cook: Object.assign({}, ck, { servings: Math.min(40, Math.max(1, ck.servings + delta)) }) });
+  const n = Math.min(40, Math.max(1, ck.servings + delta));
+  if (n === ck.servings) return;
+  setUi({ cook: Object.assign({}, ck, { servings: n }) });
+  // Noch nicht gekaufte Zutaten dieses Rezepts auf der Einkaufsliste mit umrechnen
+  const cr = data.recipes.find((r) => r.id === ck.rid);
+  if (cr && data.shop.some((i) => !i.done && itemBelongsTo(i, cr))) write('shop', (l) => rescaleShop(l, cr, n));
 }
 function goStep(delta) {
   const cr = currentRecipe();
@@ -190,8 +198,12 @@ export function renderCook() {
 
   renderCookImage(cr);
   renderCookNutr(cr);
-  $('serv-label').textContent = ck.servings + ' ' + (cr.yieldText || 'Portionen');
-  $('cook-ingr').replaceChildren(...cr.ingredients.map((z) => {
+  // yieldText von Seiten ist manchmal "6 Gläser Marmelade": die Zahl darin nicht doppelt zeigen
+  const unit = cr.yieldText && !/^\d/.test(cr.yieldText) ? cr.yieldText : (String(cr.yieldText || '').replace(/^\d+\s*/, '') || 'Portionen');
+  $('serv-label').textContent = ck.servings + ' ' + unit;
+  $('serv-less').disabled = ck.servings <= 1;
+  $('cook-ingr').replaceChildren(...cr.ingredients.map((raw) => {
+    const z = normIngr(raw);
     const row = el('div', 'ingr');
     row.append(el('span', 'ingr-q', scaleQ(z.q, factor)), el('span', 'ingr-t', z.t));
     return row;

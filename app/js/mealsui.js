@@ -5,7 +5,7 @@ import { el, button, icon } from './util.js';
 import { berlinNow } from './calendar.js';
 import { askConfirm } from './confirm.js';
 import { cookRecipe } from './cook.js';
-import { SLOTS, SLOT_LABEL, planDays, mealsOn, setMeal, plannedRecipes, shoppingFor } from './meals.js';
+import { SLOTS, SLOT_LABEL, planDays, mealsOn, setMeal, setMealServings, mealServings, plannedRecipes, plannedServings, shoppingFor, rescaleShop } from './meals.js';
 import { openOverlay, closeOverlay, scheduleFit, setPreview } from './render.js';
 
 const $ = (id) => document.getElementById(id);
@@ -68,7 +68,27 @@ export function renderMealPicker(body, key) {
   if (cur) {
     const box = el('div', 'pick-cur');
     box.append(el('p', 'set-text', 'Geplant: ' + (curRec ? curRec.name : 'Rezept nicht mehr da')));
-    if (curRec) box.append(button('btn-gold-s', 'Jetzt kochen', () => { closeOverlay(); cookRecipe(curRec.id); }, 'Jetzt kochen: ' + curRec.name, 'pick-cook'));
+    if (curRec) {
+      // Portionen fuer diesen Platz: Einkauf und Kochmodus rechnen die Mengen darauf um
+      const sv = mealServings(cur, curRec);
+      const unit = curRec.yieldText && !/^\d/.test(curRec.yieldText) ? curRec.yieldText : 'Portionen';
+      const step = (d) => {
+        const n = Math.min(40, Math.max(1, sv + d));
+        if (n === sv) return;
+        write('cats', (l) => setMealServings(l, date, slot, n));
+        // Offene Zutaten dieses Rezepts auf der Einkaufsliste gleich mit umrechnen
+        const days = planDays(berlinNow(new Date()).date, DAYS_FOCUS);
+        const want = plannedServings(data.cats, data.recipes, days)[String(curRec.id)];
+        if (want) write('shop', (l) => rescaleShop(l, curRec, want));
+      };
+      const serv = el('div', 'serv pick-serv');
+      const less = button('serv-btn', '−', () => step(-1), 'Weniger Portionen', 'pick-serv-less');
+      const more = button('serv-btn', '+', () => step(1), 'Mehr Portionen', 'pick-serv-more');
+      less.disabled = sv <= 1;
+      serv.append(less, el('span', 'serv-label', sv + ' ' + unit), more);
+      box.append(serv);
+      box.append(button('btn-gold-s', 'Jetzt kochen', () => { closeOverlay(); cookRecipe(curRec.id, sv); }, 'Jetzt kochen: ' + curRec.name, 'pick-cook'));
+    }
     box.append(button('btn-link btn-danger', 'Entfernen', () => {
       write('cats', (l) => setMeal(l, date, slot, ''));
       closeOverlay();
@@ -89,7 +109,9 @@ export function renderMealPicker(body, key) {
       .slice().sort((a, b) => (!!b.fav - !!a.fav) || String(a.name).localeCompare(String(b.name), 'de'));
     const rows = recs.map((r) => {
       const b = button('pick-row' + (cur && String(cur.rid) === String(r.id) ? ' is-cur' : ''), null, () => {
-        write('cats', (l) => setMeal(l, date, slot, r.id));
+        // Portionen vom bisherigen Platz behalten, sonst die des Rezepts
+        const keep = cur && Number(cur.n) > 0 ? cur.n : r.servings;
+        write('cats', (l) => setMeal(l, date, slot, r.id, keep));
         closeOverlay();
       }, r.name + ' wählen', 'pick-' + r.id);
       b.append(el('span', null, (r.fav ? '★ ' : '') + r.name));
@@ -124,7 +146,10 @@ export async function shopRecipes(recs) {
 function shopPlanned() {
   const today = berlinNow(new Date()).date;
   const focus = !!$('tile-meals').closest('#focus-card');
-  return shopRecipes(plannedRecipes(data.cats, data.recipes, planDays(today, focus ? DAYS_FOCUS : DAYS_GRID)));
+  const days = planDays(today, focus ? DAYS_FOCUS : DAYS_GRID);
+  const want = plannedServings(data.cats, data.recipes, days);
+  // Mengen auf die geplanten Portionen umrechnen (mehrfach geplant = zusammengezaehlt)
+  return shopRecipes(plannedRecipes(data.cats, data.recipes, days).map((r) => Object.assign({}, r, { want: want[String(r.id)] })));
 }
 
 export function initMeals() {
